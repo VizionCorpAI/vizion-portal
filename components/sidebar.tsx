@@ -31,11 +31,11 @@ export function Sidebar({ email }: { email: string }) {
               key={n.href}
               href={n.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted transition hover:bg-panel-2 hover:text-ink",
+                "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted transition-all duration-200 hover:translate-x-1 hover:bg-panel-2 hover:text-ink",
                 active && "bg-gradient-to-r from-purple/25 to-transparent text-ink shadow-[inset_2px_0_0] shadow-magenta",
               )}
             >
-              <Icon className={cn("size-4", active && "neon-text text-accent")} />
+              <Icon className={cn("size-4 transition-transform duration-300 group-hover:scale-110 group-hover:text-magenta", active && "neon-text text-accent")} />
               {n.label}
             </Link>
           );
@@ -44,7 +44,7 @@ export function Sidebar({ email }: { email: string }) {
       <div className="border-t border-line px-4 py-3 text-xs text-muted">
         <div className="truncate">{email}</div>
         <form action={logout}>
-          <button className="mt-2 flex items-center gap-2 hover:text-ink">
+          <button className="mt-2 flex items-center gap-2 transition hover:translate-x-0.5 hover:text-magenta">
             <LogOut className="size-3.5" /> Sign out
           </button>
         </form>

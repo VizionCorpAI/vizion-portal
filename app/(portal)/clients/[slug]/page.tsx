@@ -26,7 +26,7 @@ export default async function ClientPage({ params }: { params: Promise<{ slug: s
   const c = res.data;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="stagger mx-auto max-w-6xl space-y-6">
       <Link href="/clients" className="flex items-center gap-1 text-xs text-muted hover:text-ink">
         <ArrowLeft className="size-3" /> Clients
       </Link>
@@ -37,7 +37,7 @@ export default async function ClientPage({ params }: { params: Promise<{ slug: s
       </header>
 
       {/* Summary */}
-      <Card>
+      <Card hue="cyan">
         <CardTitle>Summary</CardTitle>
         <dl className="mt-3 grid grid-cols-1 gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
           <Row k="Contact" v={c.contact_name} />
@@ -49,7 +49,7 @@ export default async function ClientPage({ params }: { params: Promise<{ slug: s
       </Card>
 
       {/* Sites */}
-      <Card>
+      <Card hue="magenta">
         <CardTitle>Sites</CardTitle>
         {c.sites.length === 0 ? (
           <p className="mt-3 text-sm text-muted">No sites yet.</p>
@@ -71,7 +71,7 @@ export default async function ClientPage({ params }: { params: Promise<{ slug: s
       </Card>
 
       {/* Logins */}
-      <Card>
+      <Card hue="purple">
         <CardTitle>Logins & credentials</CardTitle>
         <p className="mt-1 text-xs text-muted">
           Secrets live in Infisical. Reveal fetches one value on demand; every reveal is logged.

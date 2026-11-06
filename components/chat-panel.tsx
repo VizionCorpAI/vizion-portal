@@ -21,20 +21,20 @@ export function ChatPanel() {
       <button
         onClick={() => setOpen(true)}
         aria-label="Open chat"
-        className="fixed right-5 bottom-5 z-40 flex items-center gap-2 rounded-full bg-accent px-4 py-3 text-sm font-medium text-bg shadow-lg transition hover:opacity-90"
+        className="chat-fab fixed right-5 bottom-5 z-40 flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-bg"
       >
         <MessageSquare className="size-4" /> Ask VizionAI
       </button>
-      {open && <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setOpen(false)} />}
+      {open && <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />}
       <aside
         aria-hidden={!open}
-        className={`fixed top-0 right-0 z-50 flex h-screen w-full max-w-md flex-col border-l border-line bg-panel shadow-2xl transition-transform duration-200 ${
+        className={`fixed top-0 right-0 z-50 flex h-screen w-full max-w-md flex-col border-l border-accent/30 bg-panel shadow-[-20px_0_60px_-30px] shadow-accent transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <header className="flex items-center justify-between border-b border-line px-5 py-4">
           <div>
-            <div className="font-medium">VizionAI</div>
+            <div className="flex items-center gap-2 font-medium"><span className="chip size-7! [--hue:var(--color-accent)]"><MessageSquare className="size-3.5" strokeWidth={2.4} /></span>VizionAI</div>
             <div className="text-xs text-muted">Context: {path}</div>
           </div>
           <button onClick={() => setOpen(false)} aria-label="Close chat" className="text-muted hover:text-ink">

@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Activity, AlertTriangle, ArrowRight, Bot, CandlestickChart, KeyRound, Server, Workflow } from "lucide-react";
+import { Activity, AlertTriangle, Bell, ArrowRight, Bot, CandlestickChart, KeyRound, Server, Workflow } from "lucide-react";
 import { portalGet, isErr, type Overview } from "@/lib/portal-api";
-import { Badge, Card, CardTitle, Dot, Unavailable, type Tone } from "@/components/ui";
+import { Badge, Card, CardTitle, Chip, Dot, Unavailable, type Tone } from "@/components/ui";
 import { cn, money, timeAgo } from "@/lib/utils";
 
 export const metadata = { title: "Overview" };
@@ -21,7 +21,7 @@ export default async function OverviewPage() {
         </div>
         {res.ok ? (
           <span className="flex items-center gap-2 text-xs text-muted">
-            <Dot tone="good" /> Live · updated {timeAgo(res.data.generated_at)}
+            <Dot tone="good" pulse /> Live · updated {timeAgo(res.data.generated_at)}
           </span>
         ) : (
           <Badge tone="bad">{res.reason}</Badge>
@@ -35,7 +35,7 @@ export default async function OverviewPage() {
 
 function Offline({ reason }: { reason: string }) {
   return (
-    <Card className="border-bad/40">
+    <Card hue="orange" className="border-bad/40">
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-0.5 size-5 text-bad" />
         <div>
@@ -55,30 +55,33 @@ function Live({ d }: { d: Overview }) {
   return (
     <>
       {/* Status tiles */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="stagger grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <ServicesTile s={d.services} />
         <TradingTile t={d.trading} />
         <WorkflowsTile w={d.workflows} />
         <AlertsTile a={d.alerts} />
-        <Card>
+        <Card hue="volt">
           <div className="flex items-center justify-between">
             <CardTitle href="/ops">Secrets rotation</CardTitle>
-            <KeyRound className="size-4 text-muted" />
+            <Chip icon={KeyRound} />
           </div>
-          <div className="mt-3 text-3xl font-semibold text-muted">–</div>
+          <div className="stat mt-3 text-3xl font-semibold text-muted">–</div>
           <p className="mt-1 text-xs text-muted">Not connected yet (Infisical metadata)</p>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="stagger grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Needs your attention */}
-        <Card className="lg:col-span-1">
-          <CardTitle>Needs your attention</CardTitle>
+        <Card hue="magenta" className="lg:col-span-1">
+          <div className="flex items-center justify-between">
+            <CardTitle>Needs your attention</CardTitle>
+            <Chip icon={Bell} />
+          </div>
           {isErr(d.attention) ? (
             <Unavailable what="Approval queue" />
           ) : (
             <>
-              <div className="mt-3 text-3xl font-semibold">{d.attention.total}</div>
+              <div className="stat mt-3 text-3xl font-semibold text-magenta">{d.attention.total}</div>
               <ul className="mt-3 divide-y divide-line">
                 {d.attention.items.map((i) => (
                   <li key={i.key}>
@@ -94,10 +97,10 @@ function Live({ d }: { d: Overview }) {
         </Card>
 
         {/* Activity feed */}
-        <Card className="lg:col-span-2">
+        <Card hue="purple" className="lg:col-span-2">
           <div className="flex items-center justify-between">
             <CardTitle>Activity · last 24 h</CardTitle>
-            <Activity className="size-4 text-muted" />
+            <Chip icon={Activity} />
           </div>
           {isErr(d.activity) ? (
             <Unavailable what="Activity" />
@@ -120,7 +123,7 @@ function Live({ d }: { d: Overview }) {
       </div>
 
       {/* Client strip */}
-      <Card>
+      <Card hue="cyan">
         <div className="flex items-center justify-between">
           <CardTitle href="/clients">Clients</CardTitle>
           <Link href="/clients" className="flex items-center gap-1 text-xs text-muted hover:text-ink">
@@ -151,16 +154,16 @@ function Live({ d }: { d: Overview }) {
 
 function ServicesTile({ s }: { s: Overview["services"] }) {
   return (
-    <Card>
+    <Card hue="cyan">
       <div className="flex items-center justify-between">
         <CardTitle href="/ops">Services</CardTitle>
-        <Server className="size-4 text-muted" />
+        <Chip icon={Server} />
       </div>
       {isErr(s) ? (
         <Unavailable what="Services" />
       ) : (
         <>
-          <div className={cn("mt-3 text-3xl font-semibold", s.up === s.total ? "text-good" : "text-warn")}>
+          <div className={cn("stat mt-3 text-3xl font-semibold", s.up === s.total ? "text-good" : "text-warn")}>
             {s.up}/{s.total}
           </div>
           <ul className="mt-2 space-y-1">
@@ -179,16 +182,16 @@ function ServicesTile({ s }: { s: Overview["services"] }) {
 
 function TradingTile({ t }: { t: Overview["trading"] }) {
   return (
-    <Card>
+    <Card hue="magenta">
       <div className="flex items-center justify-between">
         <CardTitle href="/finances">Trading today</CardTitle>
-        <CandlestickChart className="size-4 text-muted" />
+        <Chip icon={CandlestickChart} />
       </div>
       {isErr(t) ? (
         <Unavailable what="Trading" />
       ) : (
         <>
-          <div className={cn("mt-3 text-3xl font-semibold", t.pnl > 0 ? "text-good" : t.pnl < 0 ? "text-bad" : "")}>
+          <div className={cn("stat mt-3 text-3xl font-semibold", t.pnl > 0 ? "text-good" : t.pnl < 0 ? "text-bad" : "")}>
             {money(t.pnl)}
           </div>
           <p className="mt-1 text-xs text-muted">
@@ -210,16 +213,16 @@ function TradingTile({ t }: { t: Overview["trading"] }) {
 
 function WorkflowsTile({ w }: { w: Overview["workflows"] }) {
   return (
-    <Card>
+    <Card hue="blue">
       <div className="flex items-center justify-between">
         <CardTitle href="/ops">Failed runs · 24 h</CardTitle>
-        <Workflow className="size-4 text-muted" />
+        <Chip icon={Workflow} />
       </div>
       {isErr(w) ? (
         <Unavailable what="Workflows" />
       ) : (
         <>
-          <div className={cn("mt-3 text-3xl font-semibold", w.failed_24h ? "text-bad" : "text-good")}>{w.failed_24h}</div>
+          <div className={cn("stat mt-3 text-3xl font-semibold", w.failed_24h ? "text-bad" : "text-good")}>{w.failed_24h}</div>
           <p className="mt-1 text-xs text-muted">
             {w.success_24h.toLocaleString()} ok · {w.active}/{w.total} active
           </p>
@@ -239,16 +242,16 @@ function WorkflowsTile({ w }: { w: Overview["workflows"] }) {
 
 function AlertsTile({ a }: { a: Overview["alerts"] }) {
   return (
-    <Card>
+    <Card hue="orange">
       <div className="flex items-center justify-between">
         <CardTitle href="/ops">Open alerts · 24 h</CardTitle>
-        <AlertTriangle className="size-4 text-muted" />
+        <Chip icon={AlertTriangle} />
       </div>
       {isErr(a) ? (
         <Unavailable what="Alerts" />
       ) : (
         <>
-          <div className={cn("mt-3 text-3xl font-semibold", a.errors_24h ? "text-bad" : "text-good")}>{a.errors_24h}</div>
+          <div className={cn("stat mt-3 text-3xl font-semibold", a.errors_24h ? "text-bad" : "text-good")}>{a.errors_24h}</div>
           <p className="mt-1 text-xs text-muted">errors · {a.warnings_24h} warnings</p>
           <ul className="mt-2 space-y-1">
             {a.recent.slice(0, 4).map((r) => (

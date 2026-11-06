@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, Globe, KeyRound } from "lucide-react";
+import { ArrowRight, Building2, Globe, KeyRound } from "lucide-react";
 import { portalGet, type ClientSummary } from "@/lib/portal-api";
-import { Badge, Card, type Tone } from "@/components/ui";
+import { Badge, Card, Chip, HUES, type Tone } from "@/components/ui";
 
 export const metadata = { title: "Clients" };
 export const dynamic = "force-dynamic";
@@ -21,14 +21,17 @@ export default async function ClientsPage() {
       {!res.ok ? (
         <Card className="border-bad/40 text-sm">{res.reason}</Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {res.data.map((c) => (
-            <Link key={c.slug} href={`/clients/${c.slug}`} className="group">
-              <Card className="h-full transition group-hover:border-accent/60">
+        <div className="stagger grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {res.data.map((c, i) => (
+            <Link key={c.slug} href={`/clients/${c.slug}`} className="group tile-link">
+              <Card hue={HUES[i % HUES.length]} className="h-full">
                 <div className="flex items-start justify-between gap-2">
-                  <div>
+                  <div className="flex items-center gap-3">
+                    <Chip icon={Building2} />
+                    <div>
                     <div className="font-medium">{c.name}</div>
                     <div className="text-xs text-muted">{c.kind === "internal" ? "Internal" : "Client"}</div>
+                    </div>
                   </div>
                   <Badge tone={STATUS_TONE[c.status] ?? "muted"}>{c.status}</Badge>
                 </div>
@@ -39,7 +42,7 @@ export default async function ClientsPage() {
                   <span className="flex items-center gap-1"><Globe className="size-3.5" /> {c.sites} sites</span>
                   <span className="flex items-center gap-1"><KeyRound className="size-3.5" /> {c.logins} logins</span>
                   {c.logins_attention > 0 && <Badge tone="warn">{c.logins_attention} need attention</Badge>}
-                  <ArrowRight className="ml-auto size-3.5 opacity-0 transition group-hover:opacity-100" />
+                  <ArrowRight className="ml-auto size-3.5 -translate-x-2 opacity-0 transition duration-300 group-hover:translate-x-0 group-hover:opacity-100" />
                 </div>
               </Card>
             </Link>

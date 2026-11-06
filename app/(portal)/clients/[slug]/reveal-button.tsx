@@ -54,7 +54,7 @@ export function RevealButton({ slug, loginId }: { slug: string; loginId: number 
       <button
         onClick={doReveal}
         disabled={pending}
-        className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs hover:border-accent hover:text-accent disabled:opacity-60"
+        className="ghost-btn flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs hover:border-accent hover:text-accent disabled:opacity-60"
       >
         <Eye className="size-3.5" /> {pending ? "Revealing…" : "Reveal"}
       </button>
