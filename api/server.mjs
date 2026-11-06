@@ -161,12 +161,12 @@ async function workflows() {
 async function alerts() {
   const { rows: [c] } = await aidb.query(
     `select count(*) filter (where severity in ('error','critical')) as errors,
-            count(*) filter (where severity = 'warning')             as warnings
+            count(*) filter (where severity = 'warn')             as warnings
        from alert_event where created_at > now() - interval '24 hours'`,
   );
   const { rows: recent } = await aidb.query(
     `select id, workspace_key, source, severity, left(title, 140) as title, created_at
-       from alert_event where severity in ('error','critical','warning')
+       from alert_event where severity in ('error','critical','warn')
       order by id desc limit 8`,
   );
   return { errors_24h: num(c.errors), warnings_24h: num(c.warnings), recent };
@@ -265,14 +265,128 @@ async function overview() {
   return body;
 }
 
+// ---------- clients ----------
+async function clientList() {
+  const { rows } = await aidb.query(
+    `select c.slug, c.name, c.kind, c.status, c.client_key,
+            (select url from portal_client_site s where s.client_id = c.id order by is_primary desc, id limit 1) as primary_url,
+            (select count(*)::int from portal_client_site s where s.client_id = c.id)  as sites,
+            (select count(*)::int from portal_client_login l where l.client_id = c.id) as logins,
+            (select count(*)::int from portal_client_login l where l.client_id = c.id and l.status <> 'ok') as logins_attention
+       from portal_client c order by c.kind desc, c.name`,
+  );
+  return rows;
+}
+
+async function clientDetail(slug) {
+  const { rows: [c] } = await aidb.query(
+    `select id, slug, name, kind, status, client_key, contact_name, contact_email, contact_phone, notes, updated_at
+       from portal_client where slug = $1`,
+    [slug],
+  );
+  if (!c) return null;
+  const [sites, logins] = await Promise.all([
+    aidb.query(`select id, url, label, platform, hosting_ref, is_primary, notes
+                  from portal_client_site where client_id = $1 order by is_primary desc, label`, [c.id]),
+    // never the secret itself: only whether one is linked
+    aidb.query(`select id, label, service, kind, login_url, username, status, notes,
+                       (secret_path is not null and secret_key is not null) as has_secret,
+                       secret_path, secret_key
+                  from portal_client_login where client_id = $1 order by label`, [c.id]),
+  ]);
+  const { id, ...client } = c;
+  return { ...client, sites: sites.rows, logins: logins.rows };
+}
+
+// Reveal: reads ONE Infisical key that a login row points at, with the portal's own
+// read-only identity, and appends an audit row. Nothing is cached.
+const INF = process.env.INFISICAL_DOMAIN || "https://app.infisical.com";
+async function infisicalToken() {
+  const clientId = process.env.PORTAL_INFISICAL_CLIENT_ID;
+  const clientSecret = process.env.PORTAL_INFISICAL_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return null;
+  const r = await fetch(`${INF}/api/v1/auth/universal-auth/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ clientId, clientSecret }),
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!r.ok) throw new Error(`infisical login ${r.status}`);
+  return (await r.json()).accessToken;
+}
+
+async function reveal(slug, loginId, by) {
+  const { rows: [l] } = await aidb.query(
+    `select l.id, l.secret_project, l.secret_env, l.secret_path, l.secret_key
+       from portal_client_login l join portal_client c on c.id = l.client_id
+      where c.slug = $1 and l.id = $2`,
+    [slug, loginId],
+  );
+  if (!l) return { status: 404, body: { error: "login not found" } };
+  if (!l.secret_path || !l.secret_key) return { status: 409, body: { error: "no secret linked to this login yet" } };
+
+  let ok = false, value = null, status = 200, error;
+  try {
+    const token = await infisicalToken();
+    if (!token) {
+      status = 503; error = "reveal is not configured on the Portal API";
+    } else {
+      const qs = new URLSearchParams({ workspaceId: l.secret_project, environment: l.secret_env, secretPath: l.secret_path });
+      const r = await fetch(`${INF}/api/v3/secrets/raw/${encodeURIComponent(l.secret_key)}?${qs}`, {
+        headers: { authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (r.ok) { value = (await r.json()).secret.secretValue; ok = true; }
+      else { status = r.status === 404 ? 404 : 502; error = r.status === 404 ? "secret not found in Infisical" : "Infisical error"; }
+      fetch(`${INF}/api/v1/auth/token/revoke`, {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ accessToken: token }),
+      }).catch(() => {});
+    }
+  } catch (e) {
+    console.error("[reveal]", e.message);
+    status = 502; error = "Infisical unreachable";
+  }
+
+  // audit (the role is read-only by default; this one insert is explicitly read-write)
+  const c = await aidb.connect();
+  try {
+    await c.query("BEGIN READ WRITE");
+    await c.query(`insert into portal_reveal_log (login_id, revealed_by, ok) values ($1, $2, $3)`, [l.id, by, ok]);
+    await c.query("COMMIT");
+  } catch (e) {
+    await c.query("ROLLBACK").catch(() => {});
+    console.error("[reveal audit]", e.message);
+    // no audit, no secret
+    return { status: 500, body: { error: "could not record the reveal; not shown" } };
+  } finally {
+    c.release();
+  }
+  console.log(`[reveal] login=${l.id} by=${by} ok=${ok}`);
+  return ok ? { status: 200, body: { value } } : { status, body: { error } };
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://x");
   if (req.method === "GET" && url.pathname === "/healthz") return send(res, 200, { ok: true });
   if (!authorized(req)) return send(res, 401, { error: "unauthorized" });
-  if (req.method !== "GET") return send(res, 405, { error: "read-only API; actions are not enabled yet" });
   try {
+    // the only non-GET route: reveal one linked secret, audited
+    const rv = url.pathname.match(/^\/v1\/clients\/([a-z0-9-]+)\/logins\/(\d+)\/reveal$/);
+    if (rv && req.method === "POST") {
+      const by = String(req.headers["x-portal-user"] || "").slice(0, 200);
+      if (!by) return send(res, 400, { error: "x-portal-user required" });
+      const r = await reveal(rv[1], Number(rv[2]), by);
+      return send(res, r.status, r.body);
+    }
+    if (req.method !== "GET") return send(res, 405, { error: "read-only API" });
     if (url.pathname === "/v1/health") return send(res, 200, { ok: true, time: new Date().toISOString() });
     if (url.pathname === "/v1/overview") return send(res, 200, await overview());
+    if (url.pathname === "/v1/clients") return send(res, 200, await clientList());
+    const cm = url.pathname.match(/^\/v1\/clients\/([a-z0-9-]+)$/);
+    if (cm) {
+      const d = await clientDetail(cm[1]);
+      return d ? send(res, 200, d) : send(res, 404, { error: "client not found" });
+    }
     return send(res, 404, { error: "not found" });
   } catch (e) {
     console.error(e);
