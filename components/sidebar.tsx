@@ -17,10 +17,10 @@ const ICONS: Record<string, LucideIcon> = {
 export function Sidebar({ email }: { email: string }) {
   const path = usePathname();
   return (
-    <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-line bg-panel">
+    <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col neon-rail">
       <div className="px-5 py-5">
-        <div className="text-[10px] tracking-[0.35em] text-accent">VIZIONAI</div>
-        <div className="text-lg font-semibold">Portal</div>
+        <div className="neon-text text-[10px] tracking-[0.35em] text-accent">VIZIONAI</div>
+        <div className="bg-gradient-to-r from-accent via-purple to-magenta bg-clip-text text-lg font-semibold text-transparent">Portal</div>
       </div>
       <nav className="flex-1 space-y-0.5 px-3">
         {NAV.map((n) => {
@@ -32,10 +32,10 @@ export function Sidebar({ email }: { email: string }) {
               href={n.href}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted transition hover:bg-panel-2 hover:text-ink",
-                active && "bg-panel-2 text-ink",
+                active && "bg-gradient-to-r from-purple/25 to-transparent text-ink shadow-[inset_2px_0_0] shadow-magenta",
               )}
             >
-              <Icon className={cn("size-4", active && "text-accent")} />
+              <Icon className={cn("size-4", active && "neon-text text-accent")} />
               {n.label}
             </Link>
           );

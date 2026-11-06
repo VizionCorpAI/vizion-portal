@@ -1,19 +1,64 @@
 @import "tailwindcss";
 
+/* Cyberpunk neon: cyan / magenta / purple on deep violet-black */
 @theme {
-  --color-bg: #0b0d12;
-  --color-panel: #12151d;
-  --color-panel-2: #181c26;
-  --color-line: #252a37;
-  --color-ink: #e7e9ee;
-  --color-muted: #8b92a5;
-  --color-accent: #7c9cff;
-  --color-good: #3ecf8e;
-  --color-warn: #f5b84b;
-  --color-bad: #ff6b6b;
+  --color-bg: #07060f;
+  --color-panel: #0f0d1f;
+  --color-panel-2: #17142e;
+  --color-line: #2a2452;
+  --color-ink: #ecebff;
+  --color-muted: #9690c0;
+  --color-accent: #00e5ff;      /* neon cyan */
+  --color-magenta: #ff2bd6;
+  --color-purple: #9d4dff;
+  --color-good: #39ffb0;
+  --color-warn: #ffd23f;
+  --color-bad: #ff3d71;
   --font-sans: ui-sans-serif, system-ui, "Segoe UI", Inter, sans-serif;
 }
 
 html, body { background: var(--color-bg); color: var(--color-ink); }
-body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
-::selection { background: color-mix(in srgb, var(--color-accent) 40%, transparent); }
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* neon haze + faint grid */
+  background-image:
+    radial-gradient(60rem 40rem at 0% 0%, color-mix(in srgb, var(--color-magenta) 14%, transparent), transparent 70%),
+    radial-gradient(50rem 40rem at 100% 100%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 70%),
+    radial-gradient(40rem 30rem at 70% 10%, color-mix(in srgb, var(--color-purple) 12%, transparent), transparent 70%),
+    linear-gradient(color-mix(in srgb, var(--color-purple) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--color-purple) 7%, transparent) 1px, transparent 1px);
+  background-size: auto, auto, auto, 40px 40px, 40px 40px;
+  background-attachment: fixed;
+}
+::selection { background: color-mix(in srgb, var(--color-magenta) 45%, transparent); }
+
+/* page titles */
+h1 {
+  background: linear-gradient(90deg, var(--color-accent), var(--color-purple) 50%, var(--color-magenta));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@layer components {
+  .neon-card {
+    background: color-mix(in srgb, var(--color-panel) 82%, transparent);
+    backdrop-filter: blur(8px);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-accent) 10%, transparent);
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .neon-card:hover {
+    border-color: color-mix(in srgb, var(--color-purple) 60%, transparent);
+    box-shadow: 0 0 24px -8px var(--color-purple), inset 0 1px 0 color-mix(in srgb, var(--color-accent) 18%, transparent);
+  }
+  .neon-text { text-shadow: 0 0 8px currentColor; }
+  .neon-btn {
+    background: linear-gradient(90deg, var(--color-accent), var(--color-purple), var(--color-magenta));
+    box-shadow: 0 0 18px -4px var(--color-magenta);
+  }
+  .neon-rail {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-panel) 92%, transparent), color-mix(in srgb, var(--color-bg) 92%, transparent));
+    box-shadow: 1px 0 0 color-mix(in srgb, var(--color-purple) 35%, transparent), 8px 0 30px -20px var(--color-magenta);
+  }
+}

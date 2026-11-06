@@ -10,9 +10,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const { next = "/" } = await searchParams;
   return (
     <main className="grid min-h-screen place-items-center px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-line bg-panel p-8 shadow-2xl">
+      <div className="w-full max-w-sm neon-card rounded-2xl border border-line p-8 shadow-[0_0_60px_-15px] shadow-purple">
         <div className="mb-6">
-          <div className="text-xs tracking-[0.3em] text-accent">VIZIONAI</div>
+          <div className="neon-text text-xs tracking-[0.3em] text-accent">VIZIONAI</div>
           <h1 className="mt-1 text-2xl font-semibold">Portal</h1>
           <p className="mt-1 text-sm text-muted">Owner and team only.</p>
         </div>

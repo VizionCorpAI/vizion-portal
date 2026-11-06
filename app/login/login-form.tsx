@@ -31,7 +31,7 @@ export function LoginForm({ next }: { next: string }) {
       {state.error && <p className="text-sm text-bad">{state.error}</p>}
       <button
         disabled={pending}
-        className="w-full rounded-lg bg-accent px-3 py-2 font-medium text-bg transition hover:opacity-90 disabled:opacity-60"
+        className="w-full neon-btn rounded-lg px-3 py-2 font-medium text-bg transition hover:brightness-110 disabled:opacity-60"
       >
         {pending ? "Signing in…" : "Sign in"}
       </button>
