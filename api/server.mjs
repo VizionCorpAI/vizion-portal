@@ -301,6 +301,11 @@ async function clientDetail(slug) {
 // Reveal: reads ONE Infisical key that a login row points at, with the portal's own
 // read-only identity, and appends an audit row. Nothing is cached.
 const INF = process.env.INFISICAL_DOMAIN || "https://app.infisical.com";
+// portal_client_login.secret_project stores the project name; Infisical wants the id
+const INF_PROJECTS = {
+  "vizion-business": "f67a6490-4cc1-489d-a6eb-98fe995b0539",
+  "vizion-infrastructure": "918f6641-7111-4c80-b08a-46321c6b81ab",
+};
 async function infisicalToken() {
   const clientId = process.env.PORTAL_INFISICAL_CLIENT_ID;
   const clientSecret = process.env.PORTAL_INFISICAL_CLIENT_SECRET;
@@ -331,7 +336,8 @@ async function reveal(slug, loginId, by) {
     if (!token) {
       status = 503; error = "reveal is not configured on the Portal API";
     } else {
-      const qs = new URLSearchParams({ workspaceId: l.secret_project, environment: l.secret_env, secretPath: l.secret_path });
+      const workspaceId = INF_PROJECTS[l.secret_project] ?? l.secret_project;
+      const qs = new URLSearchParams({ workspaceId,environment: l.secret_env, secretPath: l.secret_path });
       const r = await fetch(`${INF}/api/v3/secrets/raw/${encodeURIComponent(l.secret_key)}?${qs}`, {
         headers: { authorization: `Bearer ${token}` },
         signal: AbortSignal.timeout(8000),
