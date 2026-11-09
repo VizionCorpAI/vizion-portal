@@ -49,3 +49,19 @@ npm install
 # set PORTAL_API_URL, PORTAL_API_KEY, PORTAL_SESSION_SECRET, PORTAL_OWNER_EMAIL, PORTAL_OWNER_PASSWORD in your shell
 npm run dev        # http://localhost:3100
 ```
+
+## Auto deploy (2026-11-09)
+`bash scripts/auto_deploy.sh` publishes everything committed on `main`, with automatic gates instead of a manual check:
+a secret scan (`infisical scan`, redacted) of every commit not yet on GitHub blocks the push on a hit; otherwise it pushes
+(Hostinger rebuilds the site), rebuilds the `vizion-portal-api` container when `api/` changed (`--api` forces it),
+records the deploy in AIDB `platform_release` and messages the owner on Telegram.
+
+The page data needs no deploy: every page reads AIDB/n8n live (rebuilt every 2 min), and the EA version on Settings
+comes from `platform_release`, written by `vizion-trading/scripts/sync_ea.sh` on each EA release.
+
+**Make it run after every commit (owner, once).** Claude Code's safety check won't install a self-running push hook, so
+run this yourself in Git Bash:
+```
+cd /c/vizionai/WORKSPACES/vizion-portal && printf '#!/bin/sh\n[ "$(git config --bool hooks.auto-deploy)" = "false" ] && exit 0\nnohup bash scripts/auto_deploy.sh >> .git/auto_deploy.log 2>&1 &\n' > .git/hooks/post-commit && chmod +x .git/hooks/post-commit
+```
+Turn it off again with `git config hooks.auto-deploy false`.

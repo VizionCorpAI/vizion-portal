@@ -56,8 +56,19 @@ async function dashboards({ aidb, n8ndb, tz }) {
           group by 1, 2 order by net`);
       return table("Setup performance (30 days)",
         [col("setup", "Setup"), col("kind", "Entry"), col("trades", "Trades", "right"), col("win_pct", "Win %", "right"), col("net", "Net", "right")],
-        rows.map((r) => ({ setup: r.setup, kind: r.re ? "re-entry" : "first", trades: n(r.trades), win_pct: n(r.win_pct), net: money(r.net) })),
-        { note: "Setups are upgraded from this record, never removed (EA v7.20)." });
+        rows.map((r) => ({ setup: r.setup, kind: r.re ? "re-entry" : /^(FLIP|RETEST)-/.test(r.setup) ? "upgraded" : "first", trades: n(r.trades), win_pct: n(r.win_pct), net: money(r.net) })),
+        { note: "Setups are upgraded from this record, never removed. 'upgraded' = EA v7.31 smarter entries: FLIP- trades a failed break the other way, RETEST- waits for break -> retest -> hold." });
+    }),
+    safe("Watchlist ladder", async () => {
+      const { rows } = await aidb.query(
+        `select rank, symbol, category = 'core' mandatory, is_active_trade active, research_score, ladder_since, research_at
+           from watchlist where on_watchlist order by rank nulls last limit 20`);
+      const { rows: [w] } = await aidb.query(`select max(week_start) week, count(*) filter (where week_start = (select max(week_start) from watchlist_weekly)) n from watchlist_weekly`);
+      return table("Watchlist ladder (top 20)",
+        [col("rank", "#", "right"), col("symbol", "Symbol"), col("role", "Role"), col("research_score", "Research score", "right"), col("ladder_since", "On ladder since")],
+        rows.map((r) => ({ rank: n(r.rank), symbol: r.symbol, role: (r.mandatory ? "mandatory · " : "") + (r.active ? "trading" : "watching"),
+          research_score: n(r.research_score), ladder_since: r.ladder_since ? new Date(r.ladder_since).toISOString().slice(0, 10) : "" })),
+        { note: `Ranks 1-10 trade, 11-20 watch. Mandatory: gold, silver, US Oil, US30, NAS100, V75, V100. Re-ranked every Monday 00:10 UTC; every 2nd week the 5 weakest go back to the pool. ${w?.week ? `Last ladder run: week of ${String(w.week).slice(0, 10)}.` : "First ladder run: Mon 2026-11-16."}` });
     }),
     safe("AI gate decisions (7 days)", async () => {
       const { rows } = await aidb.query(
@@ -366,7 +377,15 @@ async function settings({ aidb, n8ndb }) {
         { label: "Calendars ok", value: n(r.cal_ok), tone: n(r.cal_ok) === n(r.total) ? "good" : "warn" }] };
     }),
     { kind: "note", title: "Users & access", text: "Owner login only (portal v0.1). Team roles come with the write actions." },
-    { kind: "note", title: "About", text: "Portal API v0.2 (pages for every workspace) · EA v7.20 on the Deriv demo account · data read live from the PC through the Portal API." },
+    safe("About", async () => {
+      const { rows } = await aidb.query(`select component, version, build, commit, released_at from platform_release`);
+      const r = Object.fromEntries(rows.map((x) => [x.component, x]));
+      const when = (x) => (x?.released_at ? new Date(x.released_at).toISOString().slice(0, 10) : "");
+      const ea = r.ea ? `EA v${r.ea.version} ${r.ea.build || ""} (released ${when(r.ea)})` : "EA version not recorded yet";
+      const portal = r.portal ? `portal ${r.portal.commit} (deployed ${when(r.portal)})` : "portal deploy not recorded yet";
+      return { kind: "note", title: "About", text: `${ea} on the Deriv demo account: 5% daily loss limit, 20-symbol ladder, smarter entries · ${portal} · versions are written by the release scripts themselves · data read live from the PC through the Portal API.` };
+    }),
+    { kind: "note", title: "Telegram", text: "Telegram control goes to the AI agent. A Telegram -> Claude Code bridge is built (vizion-infra/stack/telegram-claude) but switched off until the owner turns it on." },
   ]);
 }
 
