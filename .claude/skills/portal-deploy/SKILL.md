@@ -1,14 +1,15 @@
 ---
 name: portal-deploy
-description: Deploy portal changes: commit, push to GitHub (VizionCorpAI/vizion-portal main) so Hostinger rebuilds, then verify. Publishes: asks first. Use for /portal-deploy.
+description: Deploy portal changes: commit on main, scripts/auto_deploy.sh (secret scan, push, API rebuild, Telegram), then check GitHub Actions. Use for /portal-deploy.
 ---
 
 # /portal-deploy
-1. `cd C:/vizionai/WORKSPACES/vizion-portal && git status`; `npm run build` must pass locally (do not leave a dev server running;
-   delete `.next` afterwards to save space).
-2. Owner yes, then commit and `git push origin main` (never push secrets; check the diff for keys/tokens first).
-3. Hostinger builds from the GitHub repo (Websites > vizionai.iamvisioncorp.org > Node.js). Poll the live site until the change shows.
-4. API changes (`api/`) need the container rebuilt on the PC: /stack-restart portal-api.
+1. `cd C:/vizionai/WORKSPACES/vizion-portal && git status`; commit the change on `main`. Do NOT build locally (no `npm install`,
+   no `.next`; disk is tight): GitHub Actions `ci` (typecheck + build + API image) and `secret-scan` test every push.
+2. `bash scripts/auto_deploy.sh` (automatic gates, no approval step): infisical secret scan of unpushed commits -> push ->
+   API container rebuilt if `api/` changed (`--api` forces) -> AIDB `platform_release` -> Telegram message to the owner.
+3. `gh run list -R VizionCorpAI/vizion-portal -L 2` until both are green; Hostinger rebuilds the site from `main`.
+   A red `ci` run: fix and push again.
 
 ## Rules (all VizionAI commands)
 - Read-only unless this command says it changes something; any change needs the owner's explicit yes first.
