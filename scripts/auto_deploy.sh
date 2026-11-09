@@ -21,7 +21,7 @@ if [ -n "$(git rev-list $range)" ]; then
   if ! command -v infisical >/dev/null 2>&1; then
     tg "Portal deploy BLOCKED: infisical CLI missing, so the secret scan could not run. Nothing was pushed."; exit 1
   fi
-  if ! infisical scan git-changes --log-opts="$range" --redact --silent; then
+  if ! infisical scan --log-opts="$range" --redact --silent --telemetry=false; then
     tg "Portal deploy BLOCKED: the secret scan flagged a commit not yet on GitHub. Nothing was pushed."; exit 1
   fi
   api_changed=$(git diff --name-only $range -- api | head -1)
