@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink } from "lucide-react";
-import { portalGet, type ClientDetail } from "@/lib/portal-api";
+import { ArrowLeft, CalendarDays, ExternalLink, Mail } from "lucide-react";
+import { portalGet, type ClientDetail, type ClientMail } from "@/lib/portal-api";
 import { Badge, Card, CardTitle, type Tone } from "@/components/ui";
 import { RevealButton } from "./reveal-button";
 
@@ -70,6 +70,35 @@ export default async function ClientPage({ params }: { params: Promise<{ slug: s
         )}
       </Card>
 
+      {/* Mail & calendar (IO per-client mailbox) */}
+      <Card hue="cyan">
+        <CardTitle>Mail &amp; calendar</CardTitle>
+        <MailStatus mail={c.mail} />
+      </Card>
+
+      {/* Leads */}
+      <Card hue="magenta">
+        <CardTitle>Recent leads</CardTitle>
+        {c.leads.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">No leads yet.</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-line">
+            {c.leads.map((l) => (
+              <li key={l.id} className="py-2.5 text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium">{l.name || l.email || "Unknown"}</span>
+                  {l.email && l.name && <span className="text-muted">{l.email}</span>}
+                  {l.lead_source && <Badge>{l.lead_source}</Badge>}
+                  {l.status && <Badge tone={l.status === "new" ? "warn" : "muted"}>{l.status}</Badge>}
+                  <span className="ml-auto text-xs text-muted">{ago(l.created_at)}</span>
+                </div>
+                {l.notes && <div className="mt-1 text-xs text-muted">{l.notes}</div>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
       {/* Logins */}
       <Card hue="purple">
         <CardTitle>Logins & credentials</CardTitle>
@@ -111,6 +140,54 @@ export default async function ClientPage({ params }: { params: Promise<{ slug: s
       </Card>
     </div>
   );
+}
+
+function MailStatus({ mail }: { mail: ClientMail | null }) {
+  if (!mail) {
+    return (
+      <p className="mt-3 text-sm text-muted">
+        Not set up. Add APPLY_EMAIL and an app password in Infisical (
+        <span className="font-mono">/marketting/clients/&lt;slug&gt;/accounts</span>), share the calendar with the
+        service account, then add the client to <span className="font-mono">io_mailbox</span>.
+      </p>
+    );
+  }
+  const lines = [
+    { icon: Mail, label: "Mailbox", ok: mail.last_ok_at, err: mail.last_error, errAt: mail.last_error_at,
+      extra: `${mail.emails_7d} emails in 7 days · ${mail.captured_total} captured` },
+    { icon: CalendarDays, label: "Calendar", ok: mail.calendar_ok_at, err: mail.calendar_error, errAt: mail.calendar_error_at,
+      extra: `${mail.campaigns_upcoming} upcoming campaigns` },
+  ];
+  return (
+    <ul className="mt-3 divide-y divide-line">
+      {lines.map(({ icon: Icon, label, ok, err, errAt, extra }) => (
+        <li key={label} className="flex flex-wrap items-center gap-3 py-2.5 text-sm">
+          <Icon className="size-4 text-muted" />
+          <span className="w-20 font-medium">{label}</span>
+          {!mail.enabled ? (
+            <Badge tone="muted">off</Badge>
+          ) : err ? (
+            <Badge tone="bad">error</Badge>
+          ) : ok ? (
+            <Badge tone="good">ok</Badge>
+          ) : (
+            <Badge tone="warn">not checked yet</Badge>
+          )}
+          <span className="text-muted">{ok ? `checked ${ago(ok)}` : ""}</span>
+          <span className="text-xs text-muted">{extra}</span>
+          {err && <span className="w-full text-xs text-bad">{err}{errAt ? ` (${ago(errAt)})` : ""}</span>}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ago(iso: string) {
+  const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m} min ago`;
+  if (m < 48 * 60) return `${Math.round(m / 60)} h ago`;
+  return `${Math.round(m / 1440)} days ago`;
 }
 
 function Row({ k, v }: { k: string; v: string | null }) {

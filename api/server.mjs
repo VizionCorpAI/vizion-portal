@@ -272,7 +272,12 @@ async function clientList() {
             (select url from portal_client_site s where s.client_id = c.id order by is_primary desc, id limit 1) as primary_url,
             (select count(*)::int from portal_client_site s where s.client_id = c.id)  as sites,
             (select count(*)::int from portal_client_login l where l.client_id = c.id) as logins,
-            (select count(*)::int from portal_client_login l where l.client_id = c.id and l.status <> 'ok') as logins_attention
+            (select count(*)::int from portal_client_login l where l.client_id = c.id and l.status <> 'ok') as logins_attention,
+            -- per-client mailbox + calendar (IO io_mailbox): null = not set up
+            (select case when not m.enabled then 'off'
+                         when m.last_error is not null or m.calendar_error is not null then 'error'
+                         else 'ok' end
+               from io_mailbox m where m.client_slug = c.slug)                                as mailbox
        from portal_client c order by c.kind desc, c.name`,
   );
   return rows;
@@ -294,8 +299,21 @@ async function clientDetail(slug) {
                        secret_path, secret_key
                   from portal_client_login where client_id = $1 order by label`, [c.id]),
   ]);
+  const key = c.client_key || slug.toUpperCase();
+  const [mail, leads] = await Promise.all([
+    // health only: the mailbox address and app password stay in Infisical
+    aidb.query(`select m.enabled, m.last_ok_at, m.last_error, m.last_error_at, m.captured_total::int as captured_total,
+                       m.calendar_ok_at, m.calendar_error, m.calendar_error_at,
+                       (select count(*)::int from io_source s where s.source_kind = 'email'
+                           and s.source_ref like 'email:' || m.client_slug || ':%' and s.created_at > now() - interval '7 days') as emails_7d,
+                       (select count(*)::int from mkt_campaigns k where k.calendar_event_id like m.client_slug || ':%'
+                           and k.status = 'planned' and k.start_date >= current_date)                                       as campaigns_upcoming
+                  from io_mailbox m where m.client_slug = $1`, [slug]),
+    aidb.query(`select id, name, email, lead_source, status, notes, created_at
+                  from social_leads where client_key = $1 order by created_at desc limit 10`, [key]),
+  ]);
   const { id, ...client } = c;
-  return { ...client, sites: sites.rows, logins: logins.rows };
+  return { ...client, sites: sites.rows, logins: logins.rows, mail: mail.rows[0] || null, leads: leads.rows };
 }
 
 // Reveal: reads ONE Infisical key that a login row points at, with the portal's own

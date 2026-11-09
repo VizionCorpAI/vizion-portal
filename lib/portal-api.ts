@@ -83,6 +83,18 @@ export async function portalPost<T>(path: string, user: string): Promise<ApiResu
 export type ClientSummary = {
   slug: string; name: string; kind: "internal" | "client"; status: string; client_key: string | null;
   primary_url: string | null; sites: number; logins: number; logins_attention: number;
+  mailbox: "ok" | "error" | "off" | null;
+};
+
+export type ClientMail = {
+  enabled: boolean; last_ok_at: string | null; last_error: string | null; last_error_at: string | null;
+  captured_total: number; calendar_ok_at: string | null; calendar_error: string | null; calendar_error_at: string | null;
+  emails_7d: number; campaigns_upcoming: number;
+};
+
+export type ClientLead = {
+  id: number; name: string | null; email: string | null; lead_source: string | null; status: string | null;
+  notes: string | null; created_at: string;
 };
 
 export type ClientDetail = {
@@ -95,4 +107,6 @@ export type ClientDetail = {
     status: "ok" | "expired" | "missing" | "unknown"; notes: string | null; has_secret: boolean;
     secret_path: string | null; secret_key: string | null;
   }[];
+  mail: ClientMail | null;
+  leads: ClientLead[];
 };

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Building2, Globe, KeyRound } from "lucide-react";
+import { ArrowRight, Building2, Globe, KeyRound, Mail } from "lucide-react";
 import { portalGet, type ClientSummary } from "@/lib/portal-api";
 import { Badge, Card, Chip, HUES, type Tone } from "@/components/ui";
 
@@ -42,6 +42,12 @@ export default async function ClientsPage() {
                   <span className="flex items-center gap-1"><Globe className="size-3.5" /> {c.sites} sites</span>
                   <span className="flex items-center gap-1"><KeyRound className="size-3.5" /> {c.logins} logins</span>
                   {c.logins_attention > 0 && <Badge tone="warn">{c.logins_attention} need attention</Badge>}
+                  {c.mailbox && (
+                    <span className="flex items-center gap-1">
+                      <Mail className="size-3.5" />
+                      <Badge tone={c.mailbox === "ok" ? "good" : c.mailbox === "error" ? "bad" : "muted"}>mail {c.mailbox}</Badge>
+                    </span>
+                  )}
                   <ArrowRight className="ml-auto size-3.5 -translate-x-2 opacity-0 transition duration-300 group-hover:translate-x-0 group-hover:opacity-100" />
                 </div>
               </Card>
