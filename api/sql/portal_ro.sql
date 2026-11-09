@@ -8,6 +8,7 @@ ALTER ROLE portal_ro WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD :'p
 ALTER ROLE portal_ro SET default_transaction_read_only = on;
 ALTER ROLE portal_ro SET statement_timeout = '5s';
 ALTER ROLE portal_ro CONNECTION LIMIT 10;
+ALTER ROLE portal_ro SET max_parallel_workers_per_gather = 0;  -- 2026-11-09: portal reads stay single-process (slow disk, crash-restarts)
 
 \connect AIDB
 GRANT CONNECT ON DATABASE "AIDB" TO portal_ro;
@@ -20,4 +21,5 @@ GRANT CONNECT ON DATABASE n8n TO portal_ro;
 GRANT USAGE ON SCHEMA public TO portal_ro;
 -- n8n: workflow and execution metadata only, never credentials or settings
 GRANT SELECT (id, name, active, "createdAt", "updatedAt") ON workflow_entity TO portal_ro;
-GRANT SELECT (id, "workflowId", status, mode, finished, "startedAt", "stoppedAt") ON execution_entity TO portal_ro;
+GRANT SELECT (id, "workflowId", status, mode, finished, "startedAt", "stoppedAt", "deletedAt") ON execution_entity TO portal_ro;
+-- "deletedAt" (2026-11-09): lets page queries match n8n's partial index on ("stoppedAt", status) WHERE "deletedAt" IS NULL

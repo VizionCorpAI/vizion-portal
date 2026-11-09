@@ -110,3 +110,12 @@ export type ClientDetail = {
   mail: ClientMail | null;
   leads: ClientLead[];
 };
+
+// Workspace pages (/v1/pages/<slug>, api/pages.mjs): generic sections the site renders as-is.
+export type Cell = string | number | boolean | null;
+export type PageSection =
+  | { kind: "stats"; title: string; items: { label: string; value: Cell; tone?: "good" | "warn" | "bad" | "muted"; hint?: string }[] }
+  | { kind: "table"; title: string; note?: string; empty?: string; columns: { key: string; label: string; align?: "right" }[]; rows: Record<string, Cell>[] }
+  | { kind: "bars"; title: string; note?: string; diverging?: boolean; unit?: string; points: { label: string; value: number }[] }
+  | { kind: "note"; title: string; text: string; tone?: "good" | "warn" | "bad" | "muted" };
+export type PageData = { slug: string; generated_at: string; sections: PageSection[] };

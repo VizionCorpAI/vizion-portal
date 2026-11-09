@@ -7,6 +7,7 @@
 import http from "node:http";
 import crypto from "node:crypto";
 import pg from "pg";
+import { PAGES } from "./pages.mjs";
 
 const PORT = Number(process.env.PORT || 3000);
 const TZ = process.env.PORTAL_TZ || "America/Phoenix";
@@ -240,6 +241,33 @@ async function clients() {
 
 // ---------- routes ----------
 let cache = { at: 0, body: null };
+const pageCache = new Map();
+
+// Workspace pages are built in the background, one page at a time, and visitors read the cache:
+// page queries never pile up on Postgres (2026-11-09: its disk is slow and it has crash-restarted).
+// A section that fails keeps its last good version, marked stale, instead of disappearing.
+const PAGE_REFRESH_MS = Number(process.env.PORTAL_PAGE_REFRESH_MS || 120000);
+async function buildPage(slug) {
+  const sections = await PAGES[slug]({ aidb, n8ndb, tz: TZ, services });
+  const prev = pageCache.get(slug)?.body?.sections || [];
+  const merged = sections.map((s) => {
+    if (!(s.kind === "note" && s.tone === "bad")) return s;
+    const old = prev.find((p) => p.title === s.title && !(p.kind === "note" && p.tone === "bad"));
+    if (!old) return s;
+    const since = old.as_of || pageCache.get(slug).body.generated_at;
+    return { ...old, as_of: since, stale: true, note: `Showing data from ${since.slice(11, 16)} UTC (latest refresh failed).` };
+  });
+  const body = { slug, generated_at: new Date().toISOString(), sections: merged };
+  pageCache.set(slug, { at: Date.now(), body });
+  return body;
+}
+async function warmPages() {
+  for (const slug of Object.keys(PAGES)) {
+    try { await buildPage(slug); } catch (e) { console.error(`[warm:${slug}]`, e.message); }
+  }
+}
+setTimeout(warmPages, 5000);
+setInterval(warmPages, PAGE_REFRESH_MS);
 async function overview() {
   if (cache.body && Date.now() - cache.at < CACHE_MS) return cache.body;
   const [svc, trd, wf, al, att, act, cl] = await Promise.all([
@@ -406,6 +434,13 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/v1/health") return send(res, 200, { ok: true, time: new Date().toISOString() });
     if (url.pathname === "/v1/overview") return send(res, 200, await overview());
     if (url.pathname === "/v1/clients") return send(res, 200, await clientList());
+    // one page per workspace area of the site map (pages.mjs); served from the warm cache
+    const pm = url.pathname.match(/^\/v1\/pages\/([a-z]+)$/);
+    if (pm) {
+      if (!Object.hasOwn(PAGES, pm[1])) return send(res, 404, { error: "page not found" });
+      const hit = pageCache.get(pm[1]);
+      return send(res, 200, hit ? hit.body : await buildPage(pm[1]));
+    }
     const cm = url.pathname.match(/^\/v1\/clients\/([a-z0-9-]+)$/);
     if (cm) {
       const d = await clientDetail(cm[1]);
