@@ -1,0 +1,44 @@
+# VizionAI secret-scan rules for `infisical scan` (gitleaks format).
+# Extends the built-in ruleset with token types it misses, found in past leaks.
+# Copied to .infisical-scan.toml at the root of every workspace repo by
+# vizion-security/scripts/install_scan_hooks.sh — edit here, then re-run that.
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "facebook-graph-access-token"
+description = "Facebook / Instagram / Threads Graph API access token"
+regex = '''\bEAA[A-Za-z0-9]{60,}\b'''
+keywords = ["eaa"]
+
+[[rules]]
+id = "hubspot-private-app-token"
+description = "HubSpot private app access token"
+regex = '''\bpat-(na|eu)[0-9]-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b'''
+keywords = ["pat-na", "pat-eu"]
+
+[[rules]]
+id = "airtable-personal-access-token"
+description = "Airtable personal access token"
+regex = '''\bpat[A-Za-z0-9]{14}\.[0-9a-f]{64}\b'''
+keywords = ["pat"]
+
+[[rules]]
+id = "infisical-universal-auth-client-secret"
+description = "Infisical universal-auth client secret next to a client_secret key"
+regex = '''(?i)client[_-]?secret["']?\s*[:=]\s*["']?([0-9a-f]{64})\b'''
+secretGroup = 1
+keywords = ["client_secret", "client-secret", "clientsecret"]
+
+[[rules]]
+id = "postgres-connection-string-with-password"
+description = "postgres:// URL with an inline password"
+regex = '''postgres(?:ql)?://[^:\s/]+:([^@\s$'"{}]{6,})@'''
+secretGroup = 1
+keywords = ["postgres://", "postgresql://"]
+
+[allowlist]
+description = "Templates and placeholders"
+paths = ['''(^|/)node_modules/''']
+regexes = ['''\$\{[A-Z0-9_]+\}''', '''<[A-Za-z_-]+>''', '''(?i)change-?me|placeholder|your[_-]''']

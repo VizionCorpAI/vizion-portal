@@ -1,0 +1,39 @@
+# Build + checks on GitHub's runners for every push and PR (2026-11-09), so nothing is built on the PC
+# (no node_modules / .next kept locally). Hostinger only gets main; a red run here = fix before relying on it.
+# Needs no secrets: the site reads its secrets at runtime, not at build time.
+name: ci
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+  api:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci --omit=dev
+      - name: Syntax check
+        run: for f in *.mjs; do node --check "$f"; done
+      - name: Docker image builds
+        run: docker build -q -t portal-api-ci .
