@@ -1,0 +1,23 @@
+# Code checks on GitHub's runners for every push and PR (owner: vizion-maintenance, 2026-11-09).
+# Syntax-checks every tracked .py .mjs/.js .sh .json .yml/.yaml .ps1 (read-only parse, nothing is executed).
+# Source: vizion-maintenance/config/ci/checks.yml, copied to every repo by vizion-maintenance/scripts/install_ci_checks.sh.
+# Needs no secrets. Skip a file: add its path to .github/ci/skip.txt.
+name: checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools
+        run: python3 -m pip install --quiet --user pyyaml
+      - name: Syntax checks
+        run: bash .github/ci/repo_checks.sh
