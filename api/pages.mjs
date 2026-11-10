@@ -255,22 +255,53 @@ async function opportunities({ aidb }) {
            from research_opportunity group by 1 order by 2 desc`);
       return { kind: "stats", title: "Found so far", items: rows.map((r) => ({ label: r.kind, value: n(r.c), hint: `${n(r.open)} still open · ${n(r.new7)} new this week` })) };
     }),
-    safe("Closing soon", async () => {
+    safe("Matches by applicant", async () => {
       const { rows } = await aidb.query(
-        `select closes_at::date closes, kind, left(title, 90) title, left(organization, 40) organization, status, url
-           from research_opportunity where closes_at >= now() order by closes_at limit 30`);
-      return table("Closing soon", [col("closes", "Closes"), col("kind", "Kind"), col("title", "Title"), col("organization", "Organization"), col("status", "Status"), col("url", "Link")], rows,
-        { note: "Apply hands an opportunity to Input / Output (IO lanes).", empty: "Nothing open with a deadline." });
+        `select a.display_name, a.applicant_key,
+                count(*) filter (where m.stage in ('matched','routed') and (m.method = 'ai' or o.kind = 'job')) kept,
+                count(*) filter (where m.stage = 'matched' and m.method = 'rules' and o.kind <> 'job') screening,
+                count(*) filter (where m.stage = 'routed') in_io,
+                count(*) filter (where m.stage = 'dropped') dropped
+           from io_applicant a left join research_opportunity_match m on m.applicant_key = a.applicant_key
+           left join research_opportunity o on o.id = m.opportunity_id
+          where a.active group by 1, 2 order by 3 desc, 1`);
+      return table("Matches by applicant", [col("display_name", "Applicant"), col("kept", "Fit (AI-approved)", "right"), col("screening", "Being checked", "right"),
+        col("in_io", "Sent to IO", "right"), col("dropped", "Ruled out", "right")], rows.map((r) => ({ ...r, kept: n(r.kept), screening: n(r.screening), in_io: n(r.in_io), dropped: n(r.dropped) })),
+        { note: "Every find is matched against each applicant's own profile (needs, location, eligibility); an AI screener then keeps only real fits." });
     }),
-    safe("Newest", async () => {
+    safe("Tailored matches", async () => {
       const { rows } = await aidb.query(
-        `select first_seen_at, kind, left(title, 90) title, left(organization, 40) organization, url from research_opportunity order by first_seen_at desc limit 20`);
-      return table("Newest finds", [col("first_seen_at", "Found"), col("kind", "Kind"), col("title", "Title"), col("organization", "Organization"), col("url", "Link")], rows);
+        `select a.display_name applicant, o.kind, m.score, left(o.title, 80) title, o.closes_at::date closes, m.stage,
+                coalesce(m.reasons->>'why', m.reasons->>0) why, o.url
+           from research_opportunity_match m join research_opportunity o on o.id = m.opportunity_id
+           join io_applicant a on a.applicant_key = m.applicant_key
+          where m.stage in ('matched', 'routed') and (m.method = 'ai' or o.kind = 'job')
+            and (o.closes_at is null or o.closes_at >= current_date)
+          order by a.display_name, (o.kind = 'job'), m.score desc, o.closes_at nulls last limit 80`);
+      return table("Tailored matches (best first, per applicant)", [col("applicant", "For"), col("kind", "Kind"), col("score", "Fit", "right"), col("title", "Opportunity"),
+        col("closes", "Closes"), col("stage", "Status"), col("why", "Why it fits"), col("url", "Link")],
+        rows.map((r) => ({ ...r, why: (r.why || "").slice(0, 140), stage: r.stage === "routed" ? "in IO (applying)" : "matched" })),
+        { empty: "No AI-approved matches yet." });
+    }),
+    safe("Profiles", async () => {
+      const { rows } = await aidb.query(
+        `select display_name, jsonb_array_length(coalesce(profile->'keywords', '[]')) keywords,
+                array_to_string(array(select jsonb_array_elements_text(coalesce(profile->'profile_sources', '[]'))), ' + ') sources,
+                array_to_string(array(select jsonb_array_elements_text(coalesce(profile->'missing_facts', '[]'))), '; ') missing,
+                profile->>'profile_built_at' built
+           from io_applicant where active order by 1`);
+      return table("Matching profiles (fill the missing facts in Infisical to sharpen matches)", [col("display_name", "Applicant"), col("keywords", "Keywords", "right"),
+        col("sources", "Built from"), col("missing", "Missing facts"), col("built", "Built")], rows.map((r) => ({ ...r, missing: (r.missing || "").slice(0, 220), sources: r.sources || "name only" })));
     }),
     safe("Leads", async () => {
       const { rows } = await aidb.query(`select created_at, organization_name, contact_name, lead_type, lead_stage, fit_score from io_business_lead order by created_at desc limit 20`);
       return table("Business leads", [col("created_at", "When"), col("organization_name", "Organization"), col("contact_name", "Contact"), col("lead_type", "Type"), col("lead_stage", "Stage"), col("fit_score", "Fit", "right")],
         rows.map((r) => ({ ...r, fit_score: n(r.fit_score) })), { empty: "No buyer or prime leads yet." });
+    }),
+    safe("Newest", async () => {
+      const { rows } = await aidb.query(
+        `select first_seen_at, kind, left(title, 90) title, left(organization, 40) organization, url from research_opportunity order by first_seen_at desc limit 20`);
+      return table("All newest finds (raw, before matching)", [col("first_seen_at", "Found"), col("kind", "Kind"), col("title", "Title"), col("organization", "Organization"), col("url", "Link")], rows);
     }),
     safe("Sources", async () => {
       const { rows } = await aidb.query(`select name, source_type, access_mode, capture_method, status, homepage_url from io_opportunity_source order by status, name`);
