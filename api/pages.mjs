@@ -177,8 +177,8 @@ async function io({ aidb }) {
       const { rows } = await aidb.query(
         `select l.lane, l.enabled, l.daily_submit_cap, coalesce(t.sent_today, 0) sent_today, l.notes
            from io_lane_control l left join io_lane_submissions_today t on t.lane = l.lane order by l.lane = '*' desc, l.lane`);
-      return table("Lanes (kill switch and daily caps)", [col("lane", "Lane"), col("enabled", "On"), col("sent_today", "Sent today", "right"), col("daily_submit_cap", "Cap", "right"), col("notes", "")],
-        rows.map((r) => ({ ...r, lane: r.lane === "*" ? "all (global switch)" : r.lane, enabled: r.enabled ? "yes" : "no", sent_today: n(r.sent_today) })));
+      return table("Lanes (kill switch and daily caps, 0 = no limit)", [col("lane", "Lane"), col("enabled", "On"), col("sent_today", "Sent today", "right"), col("daily_submit_cap", "Cap", "right"), col("notes", "")],
+        rows.map((r) => ({ ...r, lane: r.lane === "*" ? "all (global switch)" : r.lane, enabled: r.enabled ? "yes" : "no", sent_today: n(r.sent_today), daily_submit_cap: r.daily_submit_cap ? r.daily_submit_cap : "no limit" })));
     }),
     safe("Applicants", async () => {
       const { rows } = await aidb.query(`select display_name, kind, relationship, active, drive_home, drive_folder_id is not null drive from io_applicant order by active desc, display_name`);
@@ -222,6 +222,22 @@ async function io({ aidb }) {
           submission_state: { submitted: "submitted", needs_owner: "needs your click", failed: "failed", skipped: "skipped" }[r.submission_state] || r.submission_state })),
         { empty: "Nothing submitted yet.",
           note: `${n(c.sent)} submitted (${n(c.today)} today) · ${n(c.needs_owner)} waiting for your click · ${n(c.not_sent)} failed or skipped. Job applications sync from the jobs lane every 2 minutes.` });
+    }),
+    safe("Outcomes", async () => {
+      const { rows } = await aidb.query(
+        `select coalesce(a.display_name, s.applicant_key) applicant, s.lane, s.source, s.submitted, s.heard_back, s.responses,
+                s.interviews, s.offers, s.rejections, s.response_rate, s.rejection_rate
+           from io_outcome_stats s left join io_applicant a on a.applicant_key = s.applicant_key
+          order by s.lane, s.submitted desc`);
+      const pct = (v) => (v === null || v === undefined ? "–" : `${v}%`);
+      return table("Outcomes and acceptance rates (what the lanes learn from)",
+        [col("applicant", "Applicant"), col("lane", "Lane"), col("source", "Source"), col("submitted", "Sent", "right"),
+         col("heard_back", "Heard back", "right"), col("responses", "Moved forward", "right"), col("interviews", "Interviews", "right"),
+         col("offers", "Offers", "right"), col("rejections", "Rejected", "right"), col("response_rate", "Response rate", "right"),
+         col("rejection_rate", "Rejection rate", "right")],
+        rows.map((r) => ({ ...r, response_rate: pct(r.response_rate), rejection_rate: pct(r.rejection_rate) })),
+        { empty: "No submissions yet.",
+          note: "Read from each applicant's mailbox every 30 minutes. Sources and roles with better response rates are applied to first; nothing is dropped for low rates." });
     }),
     safe("Actions log", async () => {
       const { rows } = await aidb.query(`select created_at, action_type, target_workspace, action_status, left(notes, 80) notes from io_action order by created_at desc limit 20`);
