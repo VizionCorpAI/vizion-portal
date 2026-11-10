@@ -265,7 +265,7 @@ async function opportunities({ aidb }) {
   return Promise.all([
     safe("Found so far", async () => {
       const { rows } = await aidb.query(
-        `select kind, count(*) c, count(*) filter (where closes_at >= now()) open, count(*) filter (where first_seen_at > now() - interval '7 days') new7
+        `select kind, count(*) c, count(*) filter (where status <> 'closed' and (closes_at is null or closes_at >= current_date)) open, count(*) filter (where first_seen_at > now() - interval '7 days') new7
            from research_opportunity group by 1 order by 2 desc`);
       return { kind: "stats", title: "Found so far", items: rows.map((r) => ({ label: r.kind, value: n(r.c), hint: `${n(r.open)} still open · ${n(r.new7)} new this week` })) };
     }),
