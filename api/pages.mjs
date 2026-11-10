@@ -206,8 +206,22 @@ async function io({ aidb }) {
       return table("Reviews", [col("created_at", "When"), col("reviewer", "Reviewer"), col("review_state", "State"), col("item", "Item")], rows, { empty: "No reviews." });
     }),
     safe("Submissions", async () => {
-      const { rows } = await aidb.query(`select submitted_at, submission_kind, destination, submission_state, left(result_text, 80) result from io_submission order by coalesce(submitted_at, created_at) desc limit 20`);
-      return table("Submissions", [col("submitted_at", "When"), col("submission_kind", "Kind"), col("destination", "Where"), col("submission_state", "State"), col("result", "Result")], rows, { empty: "Nothing submitted yet." });
+      const { rows } = await aidb.query(
+        `select coalesce(s.submitted_at, s.updated_at) submitted_at, coalesce(a.display_name, '') applicant, s.submission_kind,
+                left(i.summary, 70) item, s.destination, s.submission_state, left(s.result_text, 80) result
+           from io_submission s join io_item i on i.id = s.item_id
+           left join io_applicant a on ('applicant:' || a.applicant_key) = any(i.tags)
+          order by coalesce(s.submitted_at, s.updated_at) desc limit 40`);
+      const { rows: [c] } = await aidb.query(
+        `select count(*) filter (where submission_state = 'submitted') sent,
+                count(*) filter (where submission_state = 'submitted' and submitted_at >= date_trunc('day', now())) today,
+                count(*) filter (where submission_state = 'needs_owner') needs_owner,
+                count(*) filter (where submission_state in ('failed', 'skipped')) not_sent from io_submission`);
+      return table("Submissions", [col("submitted_at", "When"), col("applicant", "Applicant"), col("submission_kind", "Kind"), col("item", "Opportunity"), col("submission_state", "State"), col("result", "Result")],
+        rows.map((r) => ({ ...r, submission_kind: r.submission_kind.replace(/_/g, " "),
+          submission_state: { submitted: "submitted", needs_owner: "needs your click", failed: "failed", skipped: "skipped" }[r.submission_state] || r.submission_state })),
+        { empty: "Nothing submitted yet.",
+          note: `${n(c.sent)} submitted (${n(c.today)} today) · ${n(c.needs_owner)} waiting for your click · ${n(c.not_sent)} failed or skipped. Job applications sync from the jobs lane every 2 minutes.` });
     }),
     safe("Actions log", async () => {
       const { rows } = await aidb.query(`select created_at, action_type, target_workspace, action_status, left(notes, 80) notes from io_action order by created_at desc limit 20`);
