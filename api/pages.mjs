@@ -111,9 +111,23 @@ async function dashboards({ aidb, n8ndb, tz }) {
       return table("Neural net models", [col("version", "Version"), col("status", "Status"), col("model_kind", "Kind"), col("n_rows", "Rows", "right"), col("created_at", "Trained")],
         rows.map((r) => ({ ...r, n_rows: n(r.n_rows) })));
     }),
-    safe("Opportunities found", async () => {
-      const { rows } = await aidb.query(`select kind, status, count(*) c from research_opportunity group by 1, 2 order by 1, 3 desc`);
-      return table("Opportunities found", [col("kind", "Kind"), col("status", "Status"), col("c", "Count", "right")], rows.map((r) => ({ ...r, c: n(r.c) })));
+    safe("Research lanes", async () => {
+      const { rows } = await aidb.query(`select * from research_lane_stats order by found desc, lane`);
+      const pct = (v) => (v === null || v === undefined ? "–" : `${v}%`);
+      return table("Research lanes (same lanes as IO: found -> matched -> AI-approved -> sent on -> submitted -> responses)",
+        [col("lane", "Lane"), col("enabled", "On"), col("sources", "Sources on"), col("last_sweep", "Last sweep"), col("found", "Found", "right"), col("open", "Open", "right"),
+         col("new_7d", "New 7d", "right"), col("matched", "Matched", "right"), col("ai_approved", "AI-approved", "right"), col("ruled_out", "Ruled out", "right"),
+         col("sent_on", "Sent on", "right"), col("submitted", "Submitted", "right"), col("responses", "Responses", "right"), col("response_rate", "Response rate", "right")],
+        rows.map((r) => ({ ...r, enabled: r.enabled ? "yes" : "no", sources: `${r.sources_on}/${r.sources}`, found: n(r.found), open: n(r.open), new_7d: n(r.new_7d),
+          matched: n(r.matched), ai_approved: n(r.ai_approved), ruled_out: n(r.ruled_out), sent_on: n(r.sent_on), submitted: n(r.submitted), responses: n(r.responses),
+          response_rate: pct(r.response_rate) })),
+        { note: "Switch a lane or source off in AIDB research_lane / research_source; sweeps and matching skip it." });
+    }),
+    safe("Research sources", async () => {
+      const { rows } = await aidb.query(`select lane, name, access_mode, enabled, last_run_at, last_seen, last_new, last_error, notes from research_source order by lane, enabled desc, name`);
+      return table("Research sources", [col("lane", "Lane"), col("name", "Source"), col("access_mode", "Access"), col("enabled", "On"), col("last_run_at", "Last run"),
+        col("last_seen", "Seen", "right"), col("last_new", "New", "right"), col("last_error", "Problem"), col("notes", "Notes")],
+        rows.map((r) => ({ ...r, enabled: r.enabled ? "yes" : "no", last_seen: r.last_seen === null ? "–" : n(r.last_seen), last_new: r.last_new === null ? "–" : n(r.last_new) })));
     }),
   ]);
 }
