@@ -91,7 +91,7 @@ export function ChatPanel() {
           <div className="flex items-start justify-between">
             <div>
               <div className="eyebrow">VizionAI</div>
-              <div className="font-display text-2xl text-ink">Concierge</div>
+              <div className="font-display text-[1.7rem] font-semibold italic text-ink">Concierge</div>
               <div className="mt-0.5 text-xs text-muted">Looking at <span className="text-ink/80">{path}</span></div>
             </div>
             <div className="flex items-center gap-1">
@@ -117,7 +117,7 @@ export function ChatPanel() {
           {msgs.length === 0 && !error && (
             <div className="mt-6 text-center">
               <MessageSquare className="mx-auto size-8 text-accent/70" strokeWidth={1.5} />
-              <p className="font-display mt-3 text-xl text-ink">How can I help?</p>
+              <p className="font-display mt-3 text-2xl italic text-ink">How can I help?</p>
               <p className="mt-1 text-xs text-muted">I know which page you&apos;re on, and I ask before changing anything.</p>
               <div className="mt-5 flex flex-wrap justify-center gap-2">
                 {SUGGESTIONS.map((s) => <button key={s} onClick={() => submit(s)} className="pill">{s}</button>)}

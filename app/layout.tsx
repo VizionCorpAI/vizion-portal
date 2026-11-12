@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Manrope } from "next/font/google";
+import { Fraunces, Sora } from "next/font/google";
 import "./globals.css";
 
-// Display serif for titles and big numbers, a clean geometric sans for everything else (self-hosted by next/font).
-const serif = Cormorant_Garamond({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-serif", display: "swap" });
-const body = Manrope({ subsets: ["latin"], variable: "--font-body", display: "swap" });
+// Fraunces (soft, characterful display serif with italics) for titles, card headings and big numbers;
+// Sora (geometric, slightly futuristic) for everything else. Self-hosted by next/font.
+const serif = Fraunces({ subsets: ["latin"], style: ["normal", "italic"], axes: ["SOFT", "opsz"], variable: "--font-serif", display: "swap" });
+const body = Sora({ subsets: ["latin"], variable: "--font-body", display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: "VizionAI Portal", template: "%s · VizionAI Portal" },

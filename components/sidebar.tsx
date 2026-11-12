@@ -20,8 +20,8 @@ export function Sidebar({ email }: { email: string }) {
     <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col neon-rail">
       <div className="px-6 pt-7 pb-6">
         <div className="eyebrow">VizionAI</div>
-        <div className="font-display mt-1 text-[1.9rem] leading-none text-ink">Portal</div>
-        <div className="mt-4 h-px bg-gradient-to-r from-accent/50 via-accent/10 to-transparent" />
+        <div className="font-display mt-1 text-[2.1rem] leading-none font-semibold italic text-ink">Portal</div>
+        <div className="mt-4 h-px bg-gradient-to-r from-accent/60 via-purple/40 to-transparent" />
       </div>
       <nav className="flex-1 space-y-0.5 px-3">
         {NAV.map((n) => {
@@ -36,7 +36,7 @@ export function Sidebar({ email }: { email: string }) {
                 active && "bg-panel-2 text-ink shadow-[0_1px_0_rgb(255_255_255/.04)_inset,0_8px_20px_-14px_rgb(0_0_0/.9)]",
               )}
             >
-              {active && <span className="absolute top-2 bottom-2 left-0 w-[2px] rounded-full bg-accent" />}
+              {active && <span className="absolute top-2 bottom-2 left-0 w-[3px] rounded-full bg-gradient-to-b from-accent via-purple to-magenta shadow-[0_0_10px] shadow-purple/60" />}
               <Icon className={cn("size-4 transition-colors duration-200 group-hover:text-accent", active && "text-accent")} strokeWidth={1.8} />
               {n.label}
             </Link>

@@ -30,9 +30,9 @@ export function Chip({ icon: Icon }: { icon: LucideIcon }) {
 }
 
 export function CardTitle({ children, href }: { children: React.ReactNode; href?: string }) {
-  const inner = <h2 className="text-[11px] font-semibold tracking-wide text-muted uppercase">{children}</h2>;
+  const inner = <h2 className="card-title">{children}</h2>;
   return href ? (
-    <Link href={href} className="block hover:[&_h2]:text-ink">
+    <Link href={href} className="block transition-opacity hover:opacity-80">
       {inner}
     </Link>
   ) : (
