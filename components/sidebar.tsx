@@ -32,12 +32,12 @@ export function Sidebar({ email }: { email: string }) {
               key={n.href}
               href={n.href}
               className={cn(
-                "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] text-muted transition-all duration-200 hover:bg-panel-2/70 hover:text-ink",
+                "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] text-muted transition-all duration-200 hover:translate-x-1 hover:bg-panel-2/70 hover:text-ink",
                 active && "bg-panel-2 text-ink shadow-[0_1px_0_rgb(255_255_255/.04)_inset,0_8px_20px_-14px_rgb(0_0_0/.9)]",
               )}
             >
               {active && <span className="absolute top-2 bottom-2 left-0 w-[3px] rounded-full bg-gradient-to-b from-accent via-purple to-magenta shadow-[0_0_10px] shadow-purple/60" />}
-              <Icon className={cn("size-4 transition-colors duration-200 group-hover:text-accent", active && "text-accent")} strokeWidth={1.8} />
+              <Icon className={cn("size-4 transition-transform duration-300 group-hover:scale-110 group-hover:text-accent", active && "text-accent drop-shadow-[0_0_6px_var(--color-accent)]")} strokeWidth={1.8} />
               {n.label}
             </Link>
           );

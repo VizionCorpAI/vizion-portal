@@ -9,10 +9,10 @@
   --color-line: #2a2642;
   --color-ink: #efecff;
   --color-muted: #a29dc6;
-  --color-accent: #72dcef;       /* soft cyan */
-  --color-magenta: #f08fd8;      /* soft magenta */
-  --color-purple: #ad95f7;       /* soft purple */
-  --color-blue: #7ea6f8;         /* soft electric blue */
+  --color-accent: #2fe0ff;       /* neon cyan, back to popping */
+  --color-magenta: #f47ad6;      /* magenta, softened */
+  --color-purple: #a27cff;       /* purple */
+  --color-blue: #4f8bff;         /* electric blue */
   --color-orange: #f4ab7c;       /* soft hazard orange */
   --color-volt: #cfe87f;         /* soft volt */
   --color-good: #7fe3b8;
@@ -25,8 +25,8 @@
 
 :root {
   /* name kept from the gold pass: the brand gradient used by buttons, the chat launcher and send */
-  --gold-grad: linear-gradient(120deg, #8fe6f4 0%, #b4a0fa 50%, #f4a6df 100%);
-  --hairline: color-mix(in srgb, var(--color-purple) 30%, transparent);
+  --gold-grad: linear-gradient(90deg, #2fe0ff, #4f8bff, #a27cff, #f47ad6, #2fe0ff);
+  --hairline: color-mix(in srgb, var(--color-accent) 35%, transparent);
   --shadow-1: 0 1px 0 rgb(255 255 255 / .035) inset, 0 1px 2px rgb(0 0 0 / .5), 0 8px 24px -12px rgb(0 0 0 / .7);
   --shadow-2: 0 1px 0 rgb(255 255 255 / .05) inset, 0 2px 4px rgb(0 0 0 / .45), 0 24px 48px -20px rgb(0 0 0 / .85);
 }
@@ -39,14 +39,12 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  /* soft neon haze (magenta top-left, cyan bottom-right, purple top) + a whisper of the old grid */
+  /* soft neon haze, no grid: cyan + blue lead, magenta and purple behind */
   background-image:
-    radial-gradient(60rem 40rem at 0% 0%, color-mix(in srgb, var(--color-magenta) 9%, transparent), transparent 70%),
-    radial-gradient(50rem 40rem at 100% 100%, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 70%),
+    radial-gradient(60rem 40rem at 0% 0%, color-mix(in srgb, var(--color-blue) 12%, transparent), transparent 70%),
+    radial-gradient(55rem 40rem at 100% 100%, color-mix(in srgb, var(--color-accent) 11%, transparent), transparent 70%),
     radial-gradient(40rem 30rem at 70% 5%, color-mix(in srgb, var(--color-purple) 9%, transparent), transparent 70%),
-    linear-gradient(color-mix(in srgb, var(--color-purple) 3.5%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--color-purple) 3.5%, transparent) 1px, transparent 1px);
-  background-size: auto, auto, auto, 44px 44px, 44px 44px;
+    radial-gradient(35rem 25rem at 30% 100%, color-mix(in srgb, var(--color-magenta) 6%, transparent), transparent 70%);
   background-attachment: fixed;
 }
 ::selection { background: color-mix(in srgb, var(--color-magenta) 35%, transparent); color: var(--color-ink); }
@@ -124,6 +122,12 @@ h1 + p {
 @keyframes flow { to { background-position: 200% 0; } }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes sheen { from { transform: translateX(-120%) skewX(-20deg); } to { transform: translateX(220%) skewX(-20deg); } }
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--hue) 50%, transparent), 0 0 22px -4px var(--hue); }
+  70%  { box-shadow: 0 0 0 12px transparent, 0 0 30px -2px var(--hue); }
+  100% { box-shadow: 0 0 0 0 transparent, 0 0 22px -4px var(--hue); }
+}
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
 @keyframes blink { 0%, 80%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
 
 @layer components {
@@ -135,18 +139,26 @@ h1 + p {
     border-radius: 1rem !important;
     animation: rise .6s cubic-bezier(.2,.7,.2,1) backwards;
   }
+  /* old-site motion: flowing neon line on top, hue glow in the corner that grows, lift + hue shadow on hover */
   .tile::before {
-    content: ""; position: absolute; inset: 0 0 auto 0; height: 1px; pointer-events: none;
-    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--hue) 70%, transparent), transparent);
-    opacity: .55; transition: opacity .3s;
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 2px; pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--hue), var(--color-magenta), var(--hue), transparent);
+    background-size: 200% 100%;
+    animation: flow 4s linear infinite;
+    opacity: .85;
   }
   .tile::after {
-    content: ""; position: absolute; right: -80px; top: -80px; width: 220px; height: 220px; pointer-events: none;
-    background: radial-gradient(circle, color-mix(in srgb, var(--hue) 9%, transparent), transparent 70%);
-    transition: opacity .5s ease; opacity: .8;
+    content: ""; position: absolute; right: -60px; top: -60px; width: 180px; height: 180px; pointer-events: none;
+    background: radial-gradient(circle, color-mix(in srgb, var(--hue) 18%, transparent), transparent 70%);
+    transition: transform .5s ease;
   }
-  .tile:hover { transform: translateY(-2px); }
-  .tile:hover::before { opacity: 1; }
+  .tile { transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; }
+  .tile:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--hue) 55%, transparent);
+    box-shadow: var(--shadow-2), 0 14px 40px -16px var(--hue);
+  }
+  .tile:hover::after { transform: scale(1.5); }
   .tile > * { position: relative; z-index: 1; }
 
   .stagger > :nth-child(1) { animation-delay: 0ms; }
@@ -165,19 +177,20 @@ h1 + p {
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hue) 28%, transparent), 0 6px 16px -10px var(--hue);
     transition: transform .35s cubic-bezier(.3,1.4,.5,1), background .3s;
   }
-  .tile:hover .chip { transform: translateY(-1px) scale(1.06); background: color-mix(in srgb, var(--hue) 18%, transparent); }
+  .tile:hover .chip { transform: rotate(-8deg) scale(1.1); background: color-mix(in srgb, var(--hue) 20%, transparent); }
+  .chip { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hue) 35%, transparent), 0 0 18px -6px var(--hue); }
 
   .stat { font-family: var(--font-display); font-weight: 600; font-variation-settings: "SOFT" 100, "opsz" 96; font-size: 2.6rem !important; line-height: 1; letter-spacing: -0.03em; }
 
   /* primary button: brushed gold with a sheen on hover */
   .neon-btn {
     position: relative; overflow: hidden;
-    background: var(--gold-grad); color: #140f24 !important;
-    box-shadow: 0 1px 0 rgb(255 255 255 / .35) inset, 0 8px 22px -10px color-mix(in srgb, var(--color-accent) 80%, transparent);
+    background: var(--gold-grad); background-size: 200% 100%; animation: flow 6s linear infinite; color: #0b0a14 !important;
+    box-shadow: 0 1px 0 rgb(255 255 255 / .35) inset, 0 0 18px -4px var(--color-magenta);
     transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
   }
   .neon-btn::after { content: ""; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, rgb(255 255 255 / .35), transparent); transform: translateX(-120%) skewX(-20deg); }
-  .neon-btn:hover { transform: translateY(-1px); filter: brightness(1.04); }
+  .neon-btn:hover { transform: translateY(-1px); filter: brightness(1.08); box-shadow: 0 1px 0 rgb(255 255 255 / .35) inset, 0 0 28px -4px var(--color-magenta); }
   .neon-btn:hover::after { animation: sheen .9s ease; }
   .neon-btn:active { transform: translateY(0) scale(.99); }
 
@@ -186,11 +199,14 @@ h1 + p {
 
   /* chat launcher: gold pill, soft shadow */
   .chat-fab {
-    background: var(--gold-grad); color: #140f24;
-    box-shadow: 0 1px 0 rgb(255 255 255 / .4) inset, 0 14px 34px -12px rgb(0 0 0 / .9), 0 8px 26px -14px var(--color-accent);
-    transition: transform .3s cubic-bezier(.3,1.4,.5,1), box-shadow .3s;
+    --hue: var(--color-accent);
+    background: linear-gradient(90deg, var(--color-accent), #7befff, var(--color-blue), var(--color-accent)); background-size: 200% 100%;
+    color: #0b0a14;
+    animation: flow 5s linear infinite, pulse-ring 2.8s ease-out infinite;
+    transition: transform .25s cubic-bezier(.3,1.6,.5,1);
   }
-  .chat-fab:hover { transform: translateY(-2px); box-shadow: 0 1px 0 rgb(255 255 255 / .4) inset, 0 20px 40px -14px rgb(0 0 0 / .9), 0 10px 32px -12px var(--color-accent); }
+  .chat-fab:hover { transform: translateY(-2px) scale(1.04); }
+  .chat-fab svg { animation: float 3s ease-in-out infinite; }
 
   /* chat sheet */
   .chat-sheet {
@@ -206,7 +222,7 @@ h1 + p {
   .pill:hover { border-color: var(--hairline); color: var(--color-ink); background: var(--color-panel-2); }
   .composer { background: var(--color-panel-2); border: 1px solid var(--color-line); box-shadow: inset 0 1px 2px rgb(0 0 0 / .4); transition: border-color .2s, box-shadow .2s; }
   .composer:focus-within { border-color: var(--hairline); box-shadow: inset 0 1px 2px rgb(0 0 0 / .4), 0 0 0 3px color-mix(in srgb, var(--color-accent) 10%, transparent); }
-  .send-btn { background: var(--gold-grad); color: #140f24; box-shadow: 0 1px 0 rgb(255 255 255 / .35) inset, 0 6px 14px -8px var(--color-accent); transition: transform .2s; }
+  .send-btn { background: linear-gradient(135deg, var(--color-accent), var(--color-blue)); color: #0b0a14; box-shadow: 0 1px 0 rgb(255 255 255 / .35) inset, 0 6px 14px -8px var(--color-accent); transition: transform .2s; }
   .send-btn:not(:disabled):hover { transform: translateY(-1px); }
   .bubble-me { background: linear-gradient(160deg, #2a2346, #201c36); border: 1px solid color-mix(in srgb, var(--color-purple) 28%, transparent); box-shadow: var(--shadow-1); }
   .avatar { background: color-mix(in srgb, var(--color-accent) 12%, transparent); color: var(--color-accent); box-shadow: inset 0 0 0 1px var(--hairline); }
@@ -218,7 +234,7 @@ h1 + p {
   .live-dot { position: relative; }
   .live-dot::after {
     content: ""; position: absolute; inset: 0; border-radius: 9999px; background: inherit;
-    animation: pulse-dot 2.2s ease-out infinite;
+    animation: pulse-dot 1.8s ease-out infinite;
   }
 }
 @keyframes pulse-dot { from { transform: scale(1); opacity: .6; } to { transform: scale(2.6); opacity: 0; } }
