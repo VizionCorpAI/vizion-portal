@@ -14,7 +14,7 @@ export default async function ClientsPage() {
   const res = await portalGet<ClientSummary[]>("/v1/clients");
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <header>
+      <header className="page-head">
         <h1 className="text-2xl font-semibold">Clients</h1>
         <p className="text-sm text-muted">Sites, logins and details for every client, including VisionCorp itself</p>
       </header>

@@ -16,7 +16,7 @@ export default async function PortalLayout({ children }: { children: React.React
     <div className="min-h-screen">
       <Sidebar email={session.email} />
       {/* menu is folded by default (portal button top left), so pages use the full width */}
-      <main className="min-w-0 px-10 pt-24 pb-10">{children}</main>
+      <main className="min-w-0 px-10 pt-24 pb-10 lg:pt-6">{children}</main>
       <ChatPanel />
     </div>
   );

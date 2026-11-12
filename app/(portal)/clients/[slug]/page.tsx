@@ -30,10 +30,12 @@ export default async function ClientPage({ params }: { params: Promise<{ slug: s
       <Link href="/clients" className="flex items-center gap-1 text-xs text-muted hover:text-ink">
         <ArrowLeft className="size-3" /> Clients
       </Link>
-      <header className="flex flex-wrap items-center gap-3">
+      <header className="page-head">
         <h1 className="text-2xl font-semibold">{c.name}</h1>
-        <Badge tone={STATUS_TONE[c.status] ?? "muted"}>{c.status}</Badge>
-        <Badge>{c.kind === "internal" ? "Internal" : "Client"}</Badge>
+        <div className="flex items-center gap-2">
+          <Badge tone={STATUS_TONE[c.status] ?? "muted"}>{c.status}</Badge>
+          <Badge>{c.kind === "internal" ? "Internal" : "Client"}</Badge>
+        </div>
       </header>
 
       {/* Summary */}

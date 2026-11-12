@@ -312,3 +312,16 @@ h1 + p {
   .brand-bar.is-open { background: transparent; border-color: transparent; box-shadow: none; backdrop-filter: none; }
   .brand-bar .crumb { background: color-mix(in srgb, var(--color-panel-2) 70%, transparent); box-shadow: none; }
 }
+
+/* page header (2026-11-12): title + standfirst + live status, centered at the top of every page, with a small
+   gradient rule underneath. On wide screens it sits level with the floating brand bar (main lg:pt-6). */
+.page-head {
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: .15rem;
+  padding-bottom: 1.1rem; margin-bottom: .5rem; position: relative;
+}
+.page-head::after {
+  content: ""; position: absolute; bottom: 0; left: 50%; width: 9rem; height: 1px; transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, var(--color-accent), var(--color-purple), var(--color-magenta), transparent);
+  opacity: .7;
+}
+.page-head > :not(h1):not(p) { margin-top: .45rem; }

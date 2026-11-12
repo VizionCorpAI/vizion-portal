@@ -14,7 +14,7 @@ export default async function OverviewPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <header className="flex items-end justify-between">
+      <header className="page-head">
         <div>
           <h1 className="text-2xl font-semibold">Overview</h1>
           <p className="text-sm text-muted">What needs you right now</p>

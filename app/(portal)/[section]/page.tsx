@@ -23,7 +23,7 @@ export default async function SectionPage({ params }: { params: Promise<{ sectio
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <header className="flex items-end justify-between gap-4">
+      <header className="page-head">
         <div>
           <h1 className="text-2xl font-semibold">{page.label}</h1>
           <p className="text-sm text-muted">{page.purpose}</p>
