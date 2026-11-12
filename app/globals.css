@@ -242,3 +242,73 @@ h1 + p {
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- portal menu button (2026-11-12) ----------
+   A little portal: a conic neon ring spinning around a dark glowing core, a soft pulse around it, and three bars
+   that fold into an X when the menu opens (the ring then spins faster and flares). */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin-rev { to { transform: rotate(-360deg); } }
+@keyframes core-breathe { 0%, 100% { opacity: .75; transform: scale(.92); } 50% { opacity: 1; transform: scale(1.05); } }
+@keyframes menu-in { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+
+@layer components {
+  .portal-btn {
+    --hue: var(--color-accent);
+    position: relative; width: 3rem; height: 3rem; border-radius: 9999px; flex: none;
+    display: grid; place-items: center; cursor: pointer;
+    animation: pulse-ring 3.2s ease-out infinite;
+    transition: transform .35s cubic-bezier(.3,1.6,.5,1);
+  }
+  .portal-btn:hover { transform: scale(1.07); }
+  .portal-btn:active { transform: scale(.96); }
+  .portal-ring {
+    position: absolute; inset: 0; border-radius: 9999px;
+    background: conic-gradient(from 0deg, var(--color-accent), var(--color-blue), var(--color-purple), var(--color-magenta), var(--color-accent));
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-accent) 70%, transparent));
+    animation: spin 6s linear infinite;
+  }
+  /* second, fainter counter-rotating ring for depth */
+  .portal-ring::after {
+    content: ""; position: absolute; inset: 5px; border-radius: 9999px;
+    background: conic-gradient(from 90deg, transparent 0 40%, color-mix(in srgb, var(--color-magenta) 80%, transparent) 55%, transparent 70%, color-mix(in srgb, var(--color-accent) 80%, transparent) 90%, transparent);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
+    animation: spin-rev 4s linear infinite;
+  }
+  .portal-core {
+    position: absolute; inset: 7px; border-radius: 9999px;
+    background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--color-accent) 40%, #0b0a14) 0%, #12101e 55%, #0b0a14 100%);
+    box-shadow: inset 0 0 12px color-mix(in srgb, var(--color-blue) 45%, transparent), 0 0 18px -4px var(--color-accent);
+    animation: core-breathe 3.2s ease-in-out infinite;
+  }
+  .portal-glyph { position: relative; z-index: 1; display: grid; gap: 3.5px; width: 16px; }
+  .portal-glyph i {
+    display: block; height: 2px; border-radius: 9999px; background: var(--color-ink);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--color-accent) 80%, transparent);
+    transition: transform .4s cubic-bezier(.3,1.4,.5,1), opacity .25s, width .3s;
+  }
+  .portal-glyph i:nth-child(2) { width: 70%; margin-left: auto; }
+  .portal-btn:hover .portal-glyph i:nth-child(2) { width: 100%; }
+  .portal-btn.is-open .portal-ring { animation-duration: 1.6s; filter: drop-shadow(0 0 10px var(--color-magenta)); }
+  .portal-btn.is-open .portal-glyph i:nth-child(1) { transform: translateY(5.5px) rotate(45deg); }
+  .portal-btn.is-open .portal-glyph i:nth-child(2) { opacity: 0; transform: scaleX(0); }
+  .portal-btn.is-open .portal-glyph i:nth-child(3) { transform: translateY(-5.5px) rotate(-45deg); }
+
+  .crumb { background: color-mix(in srgb, var(--color-panel) 80%, transparent); border: 1px solid var(--color-line); backdrop-filter: blur(8px); box-shadow: var(--shadow-1); }
+
+  .menu-sheet {
+    background: linear-gradient(180deg, #121022, #0b0a14);
+    border-right: 1px solid var(--color-line);
+    box-shadow: 40px 0 80px -40px rgb(0 0 0 / .95), 1px 0 0 color-mix(in srgb, var(--color-accent) 18%, transparent);
+  }
+  /* links glide in one after another when the menu opens */
+  .menu-open .menu-item { animation: menu-in .45s cubic-bezier(.2,.8,.2,1) backwards; animation-delay: calc(var(--i) * 35ms + 120ms); }
+}
+@layer components {
+  /* glass behind the floating brand bar so content scrolling underneath stays readable */
+  .brand-bar { background: color-mix(in srgb, var(--color-bg) 62%, transparent); backdrop-filter: blur(14px) saturate(1.2); border: 1px solid color-mix(in srgb, var(--color-line) 70%, transparent); box-shadow: var(--shadow-1); transition: background .3s, border-color .3s; }
+  .brand-bar.is-open { background: transparent; border-color: transparent; box-shadow: none; backdrop-filter: none; }
+  .brand-bar .crumb { background: color-mix(in srgb, var(--color-panel-2) 70%, transparent); box-shadow: none; }
+}
