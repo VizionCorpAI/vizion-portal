@@ -1,0 +1,73 @@
+{
+  "name": "Portal Chat (workspace agent)",
+  "nodes": [
+    {
+      "id": "pc000001-0000-4000-8000-000000000001",
+      "name": "Portal Chat Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "pc000001-0000-4000-8000-0000000000ff",
+      "parameters": { "httpMethod": "POST", "path": "portal/chat", "responseMode": "onReceived", "options": {} }
+    },
+    {
+      "id": "pc000001-0000-4000-8000-000000000002",
+      "name": "Claim Message",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [420, 300],
+      "alwaysOutputData": false,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "update portal_chat_queue set status = 'running', started_at = now() where id = $1::bigint and agent = 'workspace' and status = 'queued' returning id, user_email, page, text",
+        "options": { "queryReplacement": "={{ [ Number($json.body.id) || 0 ] }}" }
+      },
+      "credentials": { "postgres": { "id": "SwbG9UjrENs6DHXW", "name": "VizionAI PostgreSQL" } }
+    },
+    {
+      "id": "pc000001-0000-4000-8000-000000000003",
+      "name": "Ask Platform Master",
+      "type": "n8n-nodes-base.messageAnAgent",
+      "typeVersion": 3.1,
+      "position": [640, 300],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "agentId": { "__rl": true, "mode": "list", "value": "taQiqMImWxQoIcqS", "cachedResultName": "Platform Master" },
+        "message": "={{ '[Portal chat, owner is on page ' + ($json.page || '/') + '. Reply in markdown for a narrow side panel. Ask before changing anything.]\\n' + $json.text }}",
+        "session": { "session": { "sessionIdType": "customKey", "sessionKey": "={{ 'portal-' + $json.user_email }}" } }
+      }
+    },
+    {
+      "id": "pc000001-0000-4000-8000-000000000004",
+      "name": "Save Reply",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [880, 220],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "update portal_chat_queue set status = 'done', reply = $2, finished_at = now() where id = $1::bigint",
+        "options": { "queryReplacement": "={{ [ $('Claim Message').item.json.id, String($json.text || $json.output || 'The workspace agent had no reply.') ] }}" }
+      },
+      "credentials": { "postgres": { "id": "SwbG9UjrENs6DHXW", "name": "VizionAI PostgreSQL" } }
+    },
+    {
+      "id": "pc000001-0000-4000-8000-000000000005",
+      "name": "Save Error",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [880, 400],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "update portal_chat_queue set status = 'error', error = $2, finished_at = now() where id = $1::bigint",
+        "options": { "queryReplacement": "={{ [ $('Claim Message').item.json.id, String($json.error?.message || $json.error || 'The workspace agent failed.').slice(0, 2000) ] }}" }
+      },
+      "credentials": { "postgres": { "id": "SwbG9UjrENs6DHXW", "name": "VizionAI PostgreSQL" } }
+    }
+  ],
+  "connections": {
+    "Portal Chat Trigger": { "main": [[{ "node": "Claim Message", "type": "main", "index": 0 }]] },
+    "Claim Message": { "main": [[{ "node": "Ask Platform Master", "type": "main", "index": 0 }]] },
+    "Ask Platform Master": { "main": [[{ "node": "Save Reply", "type": "main", "index": 0 }], [{ "node": "Save Error", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "callerPolicy": "workflowsFromSameOwner" }
+}

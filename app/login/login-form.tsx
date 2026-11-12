@@ -15,7 +15,7 @@ export function LoginForm({ next }: { next: string }) {
           type="email"
           autoComplete="username"
           required
-          className="mt-1 w-full rounded-lg border border-line bg-panel-2 px-3 py-2 outline-none focus:border-accent"
+          className="mt-1.5 w-full rounded-xl border border-line bg-panel-2 px-3.5 py-2.5 shadow-[inset_0_1px_2px_rgb(0_0_0/.4)] outline-none transition focus:border-accent/50 focus:ring-3 focus:ring-accent/10"
         />
       </label>
       <label className="block">
@@ -25,13 +25,13 @@ export function LoginForm({ next }: { next: string }) {
           type="password"
           autoComplete="current-password"
           required
-          className="mt-1 w-full rounded-lg border border-line bg-panel-2 px-3 py-2 outline-none focus:border-accent"
+          className="mt-1.5 w-full rounded-xl border border-line bg-panel-2 px-3.5 py-2.5 shadow-[inset_0_1px_2px_rgb(0_0_0/.4)] outline-none transition focus:border-accent/50 focus:ring-3 focus:ring-accent/10"
         />
       </label>
       {state.error && <p className="text-sm text-bad">{state.error}</p>}
       <button
         disabled={pending}
-        className="w-full neon-btn rounded-lg px-3 py-2 font-medium text-bg transition hover:brightness-110 disabled:opacity-60"
+        className="w-full neon-btn rounded-xl px-3 py-2.5 font-semibold tracking-wide disabled:opacity-60"
       >
         {pending ? "Signing in…" : "Sign in"}
       </button>

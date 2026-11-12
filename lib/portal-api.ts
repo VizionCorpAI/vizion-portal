@@ -80,6 +80,35 @@ export async function portalPost<T>(path: string, user: string): Promise<ApiResu
   }
 }
 
+/** JSON request as a signed-in user (chat). GET when body is omitted. */
+export async function portalJson<T>(path: string, user: string, body?: unknown): Promise<ApiResult<T>> {
+  try {
+    const r = await fetch(`${BASE}${path}`, {
+      method: body === undefined ? "GET" : "POST",
+      headers: {
+        authorization: `Bearer ${await getSecret("PORTAL_API_KEY")}`, "x-portal-user": user,
+        ...(body === undefined ? {} : { "content-type": "application/json" }),
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      cache: "no-store",
+      signal: AbortSignal.timeout(15000),
+    });
+    if (r.status === 502 || r.status === 503 || r.status === 504) return { ok: false, reason: "PC offline" };
+    const j = (await r.json().catch(() => ({}))) as T & { error?: string };
+    if (!r.ok) return { ok: false, reason: j.error || `Portal API error ${r.status}` };
+    return { ok: true, data: j };
+  } catch {
+    return { ok: false, reason: "PC offline" };
+  }
+}
+
+export type ChatAgent = "workspace" | "claude";
+export type ChatMessage = {
+  id: number; page: string | null; text: string; agent: ChatAgent; status: "queued" | "running" | "done" | "error";
+  reply: string | null; error: string | null; created_at: string; finished_at: string | null;
+};
+export type ChatHistory = { runner_online: boolean; runner_seen_at: string | null; messages: ChatMessage[] };
+
 export type ClientSummary = {
   slug: string; name: string; kind: "internal" | "client"; status: string; client_key: string | null;
   primary_url: string | null; sites: number; logins: number; logins_attention: number;

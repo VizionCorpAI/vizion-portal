@@ -28,10 +28,10 @@ function CellView({ v }: { v: Cell }) {
 
 function Stats({ s }: { s: Extract<PageSection, { kind: "stats" }> }) {
   return (
-    <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
       {s.items.map((it) => (
-        <div key={it.label} className="rounded-lg bg-panel-2/60 p-3">
-          <div className="text-xs text-muted">{it.label}</div>
+        <div key={it.label} className="rounded-xl border border-line/70 bg-bg/40 p-3.5 shadow-[inset_0_1px_0_rgb(255_255_255/.03)]">
+          <div className="text-[11px] tracking-wide text-muted uppercase">{it.label}</div>
           <div className="mt-1 flex items-center gap-2 text-xl font-semibold">
             {it.tone && it.tone !== "muted" ? <Badge tone={it.tone}>{String(it.value ?? "–")}</Badge> : <CellView v={it.value} />}
           </div>
@@ -47,18 +47,18 @@ function Table({ s }: { s: Extract<PageSection, { kind: "table" }> }) {
   return (
     <div className="mt-3 max-h-[28rem] overflow-auto">
       <table className="w-full text-sm">
-        <thead className="sticky top-0 bg-panel text-left text-xs text-muted">
+        <thead className="sticky top-0 bg-panel text-left text-[11px] tracking-wide text-muted uppercase">
           <tr>
             {s.columns.map((c) => (
-              <th key={c.key} className={cn("px-2 py-1.5 font-medium", c.align === "right" && "text-right")}>{c.label}</th>
+              <th key={c.key} className={cn("border-b border-line px-2.5 py-2 font-medium", c.align === "right" && "text-right")}>{c.label}</th>
             ))}
           </tr>
         </thead>
         <tbody className="divide-y divide-line">
           {s.rows.map((r, i) => (
-            <tr key={i}>
+            <tr key={i} className="transition-colors hover:bg-panel-2/50">
               {s.columns.map((c) => (
-                <td key={c.key} className={cn("px-2 py-1.5 align-top", c.align === "right" && "text-right")}>
+                <td key={c.key} className={cn("px-2.5 py-2 align-top", c.align === "right" && "text-right")}>
                   <CellView v={r[c.key] ?? null} />
                 </td>
               ))}

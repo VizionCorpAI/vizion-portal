@@ -17,10 +17,11 @@ const ICONS: Record<string, LucideIcon> = {
 export function Sidebar({ email }: { email: string }) {
   const path = usePathname();
   return (
-    <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col neon-rail">
-      <div className="px-5 py-5">
-        <div className="neon-text text-[10px] tracking-[0.35em] text-accent">VIZIONAI</div>
-        <div className="bg-gradient-to-r from-accent via-purple to-magenta bg-clip-text text-lg font-semibold text-transparent">Portal</div>
+    <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col neon-rail">
+      <div className="px-6 pt-7 pb-6">
+        <div className="eyebrow">VizionAI</div>
+        <div className="font-display mt-1 text-[1.9rem] leading-none text-ink">Portal</div>
+        <div className="mt-4 h-px bg-gradient-to-r from-accent/50 via-accent/10 to-transparent" />
       </div>
       <nav className="flex-1 space-y-0.5 px-3">
         {NAV.map((n) => {
@@ -31,20 +32,21 @@ export function Sidebar({ email }: { email: string }) {
               key={n.href}
               href={n.href}
               className={cn(
-                "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted transition-all duration-200 hover:translate-x-1 hover:bg-panel-2 hover:text-ink",
-                active && "bg-gradient-to-r from-purple/25 to-transparent text-ink shadow-[inset_2px_0_0] shadow-magenta",
+                "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] text-muted transition-all duration-200 hover:bg-panel-2/70 hover:text-ink",
+                active && "bg-panel-2 text-ink shadow-[0_1px_0_rgb(255_255_255/.04)_inset,0_8px_20px_-14px_rgb(0_0_0/.9)]",
               )}
             >
-              <Icon className={cn("size-4 transition-transform duration-300 group-hover:scale-110 group-hover:text-magenta", active && "neon-text text-accent")} />
+              {active && <span className="absolute top-2 bottom-2 left-0 w-[2px] rounded-full bg-accent" />}
+              <Icon className={cn("size-4 transition-colors duration-200 group-hover:text-accent", active && "text-accent")} strokeWidth={1.8} />
               {n.label}
             </Link>
           );
         })}
       </nav>
-      <div className="border-t border-line px-4 py-3 text-xs text-muted">
-        <div className="truncate">{email}</div>
+      <div className="mx-3 mb-3 rounded-xl border border-line bg-panel/60 px-4 py-3 text-xs text-muted">
+        <div className="truncate text-ink/80">{email}</div>
         <form action={logout}>
-          <button className="mt-2 flex items-center gap-2 transition hover:translate-x-0.5 hover:text-magenta">
+          <button className="mt-2 flex items-center gap-2 transition hover:text-accent">
             <LogOut className="size-3.5" /> Sign out
           </button>
         </form>

@@ -22,4 +22,5 @@ GRANT USAGE ON SCHEMA public TO portal_ro;
 -- n8n: workflow and execution metadata only, never credentials or settings
 GRANT SELECT (id, name, active, "createdAt", "updatedAt") ON workflow_entity TO portal_ro;
 GRANT SELECT (id, "workflowId", status, mode, finished, "startedAt", "stoppedAt", "deletedAt") ON execution_entity TO portal_ro;
+GRANT SELECT (id, status, model, source, "totalTokens", cost, "createdAt") ON agent_execution TO portal_ro;  -- 2026-11-11: AI spend
 -- "deletedAt" (2026-11-09): lets page queries match n8n's partial index on ("stoppedAt", status) WHERE "deletedAt" IS NULL

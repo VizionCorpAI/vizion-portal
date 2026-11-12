@@ -13,7 +13,7 @@ export function Card({ className, children, hue = "cyan" }: { className?: string
   return (
     <section
       style={{ "--hue": HUE_VAR[hue] } as React.CSSProperties}
-      className={cn("neon-card tile rounded-xl border border-line p-5", className)}
+      className={cn("neon-card tile rounded-2xl border border-line p-6", className)}
     >
       {children}
     </section>
@@ -30,7 +30,7 @@ export function Chip({ icon: Icon }: { icon: LucideIcon }) {
 }
 
 export function CardTitle({ children, href }: { children: React.ReactNode; href?: string }) {
-  const inner = <h2 className="text-xs font-medium tracking-wide text-muted uppercase">{children}</h2>;
+  const inner = <h2 className="text-[11px] font-semibold tracking-wide text-muted uppercase">{children}</h2>;
   return href ? (
     <Link href={href} className="block hover:[&_h2]:text-ink">
       {inner}

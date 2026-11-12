@@ -36,12 +36,13 @@ for (const p of [aidb, n8ndb]) p.on("error", (e) => console.error("pg pool:", e.
 
 const SERVICES = JSON.parse(
   process.env.PORTAL_SERVICES ||
+    // Always-on stack only (2026-11-11): vizion-nn is a weekly job and nocodb / uptime-kuma /
+    // crawl4ai / agent-vault are opt-in compose profiles, so probing them showed "down" all day.
     JSON.stringify([
       { key: "n8n", name: "n8n", url: "http://vizion-n8n:5678/healthz" },
-      { key: "nn", name: "Neural net", url: "http://vizion-nn:8000/health" },
+      { key: "runners", name: "n8n runners", url: "http://vizion-n8n-runners:5680/healthz" },
       { key: "mt5", name: "MT5 REST", url: "http://vizion-mt5-rest:18900/health" },
-      { key: "kuma", name: "Uptime Kuma", url: "http://vizion-uptime-kuma:3001/" },
-      { key: "nocodb", name: "NocoDB", url: "http://vizion-nocodb:8080/api/v1/health" },
+      { key: "caddy", name: "Caddy (edge)", url: "http://vizion-caddy:80/" },
     ]),
 );
 
@@ -417,18 +418,83 @@ async function reveal(slug, loginId, by) {
   return ok ? { status: 200, body: { value } } : { status, body: { error } };
 }
 
+// ---------- chat (2026-11-12) ----------
+// The site posts the owner's message; the host runner (telegram-claude/runner.py) runs Claude Code and writes the
+// reply into portal_chat_queue. The site polls GET /v1/chat until the reply is there.
+const CHAT_WEBHOOK = process.env.PORTAL_CHAT_WEBHOOK || "http://vizion-n8n:5678/webhook/portal/chat";
+
+function readBody(req, limit = 64 * 1024) {
+  return new Promise((resolve, reject) => {
+    let size = 0; const chunks = [];
+    req.on("data", (c) => { size += c.length; if (size > limit) { reject(new Error("body too large")); req.destroy(); } else chunks.push(c); });
+    req.on("end", () => { try { resolve(chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : {}); } catch { reject(new Error("bad json")); } });
+    req.on("error", reject);
+  });
+}
+
+async function chatSend(by, body) {
+  const text = String(body?.text ?? "").trim();
+  const page = String(body?.page ?? "").slice(0, 200) || null;
+  // 'workspace' = n8n Platform Master (same agent as Telegram); 'claude' = Claude Code via the host runner
+  const agent = body?.agent === "claude" ? "claude" : "workspace";
+  if (!text) return { status: 400, body: { error: "empty message" } };
+  if (text.length > 8000) return { status: 400, body: { error: "message too long (8000 characters max)" } };
+  const c = await aidb.connect();
+  try {
+    await c.query("BEGIN READ WRITE");
+    const { rows: [r] } = await c.query(
+      `insert into portal_chat_queue (user_email, page, text, agent) values ($1, $2, $3, $4) returning id, created_at`, [by, page, text, agent]);
+    await c.query("COMMIT");
+    const id = Number(r.id);
+    // n8n "Portal Chat (workspace agent)" claims the row by id (only queued workspace rows), asks Platform Master
+    // and writes the reply back. The webhook carries just the id, so a stray call can't inject a message.
+    if (agent === "workspace") {
+      fetch(CHAT_WEBHOOK, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }),
+        signal: AbortSignal.timeout(10000) }).catch((e) => console.error("[chat webhook]", e.message));
+    }
+    return { status: 200, body: { id, agent, created_at: r.created_at } };
+  } catch (e) {
+    await c.query("ROLLBACK").catch(() => {});
+    throw e;
+  } finally {
+    c.release();
+  }
+}
+
+async function chatHistory(by) {
+  const { rows } = await aidb.query(
+    `select id, page, text, agent, status, reply, error, created_at, finished_at from portal_chat_queue
+      where user_email = $1 order by id desc limit 40`, [by]);
+  const { rows: [hb] } = await aidb.query(`select seen_at from portal_runner_heartbeat where name = 'claude-runner'`);
+  const runnerOnline = !!hb && Date.now() - new Date(hb.seen_at).getTime() < 90_000;
+  return { runner_online: runnerOnline, runner_seen_at: hb?.seen_at ?? null,
+    messages: rows.reverse().map((r) => ({ ...r, id: Number(r.id) })) };
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://x");
   if (req.method === "GET" && url.pathname === "/healthz") return send(res, 200, { ok: true });
   if (!authorized(req)) return send(res, 401, { error: "unauthorized" });
   try {
-    // the only non-GET route: reveal one linked secret, audited
+    // non-GET routes: reveal one linked secret (audited) and the chat (POST /v1/chat)
     const rv = url.pathname.match(/^\/v1\/clients\/([a-z0-9-]+)\/logins\/(\d+)\/reveal$/);
     if (rv && req.method === "POST") {
       const by = String(req.headers["x-portal-user"] || "").slice(0, 200);
       if (!by) return send(res, 400, { error: "x-portal-user required" });
       const r = await reveal(rv[1], Number(rv[2]), by);
       return send(res, r.status, r.body);
+    }
+    if (url.pathname === "/v1/chat") {
+      const by = String(req.headers["x-portal-user"] || "").slice(0, 200);
+      if (!by) return send(res, 400, { error: "x-portal-user required" });
+      if (req.method === "POST") {
+        let body;
+        try { body = await readBody(req); } catch (e) { return send(res, 400, { error: e.message }); }
+        const r = await chatSend(by, body);
+        return send(res, r.status, r.body);
+      }
+      if (req.method === "GET") return send(res, 200, await chatHistory(by));
+      return send(res, 405, { error: "method not allowed" });
     }
     if (req.method !== "GET") return send(res, 405, { error: "read-only API" });
     if (url.pathname === "/v1/health") return send(res, 200, { ok: true, time: new Date().toISOString() });

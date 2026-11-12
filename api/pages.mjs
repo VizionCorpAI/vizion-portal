@@ -133,8 +133,26 @@ async function dashboards({ aidb, n8ndb, tz }) {
 }
 
 // ------------------------------------------------------------------ finances
-async function finances({ aidb }) {
+async function finances({ aidb, n8ndb }) {
   return Promise.all([
+    // 2026-11-11: replaces the retired n8n "Daily Cost Report" (never ran). Source: n8n agent_execution.cost.
+    safe("AI spend", async () => {
+      const { rows: [t] } = await n8ndb.query(
+        `select coalesce(sum(cost) filter (where "createdAt" > now() - interval '24 hours'), 0) d1,
+                coalesce(sum(cost) filter (where "createdAt" > now() - interval '7 days'), 0) d7,
+                coalesce(sum(cost) filter (where "createdAt" > now() - interval '30 days'), 0) d30,
+                count(*) filter (where "createdAt" > now() - interval '24 hours') runs
+           from agent_execution where "createdAt" > now() - interval '30 days'`);
+      const { rows } = await n8ndb.query(
+        `select coalesce(model, '-') model, count(*) runs, sum("totalTokens") tokens, round(sum(cost)::numeric, 2) cost
+           from agent_execution where "createdAt" > now() - interval '30 days' group by 1 order by 4 desc nulls last`);
+      return [{ kind: "stats", title: "AI spend (n8n agents)", items: [
+          { label: "24 h", value: `$${Number(t.d1).toFixed(2)}`, hint: `${n(t.runs)} runs` },
+          { label: "7 days", value: `$${Number(t.d7).toFixed(2)}` }, { label: "30 days", value: `$${Number(t.d30).toFixed(2)}` }] },
+        table("AI spend by model (30 days)", [col("model", "Model"), col("runs", "Runs", "right"), col("tokens", "Tokens", "right"), col("cost", "Cost $", "right")],
+          rows.map((r) => ({ ...r, runs: n(r.runs), tokens: n(r.tokens), cost: money(r.cost) })),
+          { note: "n8n Agents only; scripts that call the LLM adapter directly are not counted yet.", empty: "No agent runs in 30 days." })];
+    }),
     safe("Trading", async () => {
       const { rows: [r] } = await aidb.query(
         `select sum(pnl) filter (where closed_at >= date_trunc('day', now())) today,
@@ -165,11 +183,11 @@ async function finances({ aidb }) {
       const { rows } = await aidb.query(`select display_name, tier, cost_per_input_mtok, cost_per_output_mtok from model_cost_rules where is_active order by cost_per_output_mtok desc`);
       return table("AI model prices (per million tokens)", [col("display_name", "Model"), col("tier", "Tier"), col("cost_per_input_mtok", "Input $", "right"), col("cost_per_output_mtok", "Output $", "right")],
         rows.map((r) => ({ ...r, cost_per_input_mtok: n(r.cost_per_input_mtok), cost_per_output_mtok: n(r.cost_per_output_mtok) })),
-        { note: "Usage is not logged yet (model_usage_log is empty), so spend can't be shown." });
+        { note: "Prices only; actual agent spend is in 'AI spend' above." });
     }),
     { kind: "note", title: "Revenue, costs and payments", tone: "warn",
       text: "Not tracked anywhere yet (open decision in the site map: new AIDB tables edited in the portal)." },
-  ]);
+  ]).then((s) => s.flat());
 }
 
 // ------------------------------------------------------------------ input / output

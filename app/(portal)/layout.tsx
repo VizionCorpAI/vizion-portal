@@ -15,7 +15,7 @@ export default async function PortalLayout({ children }: { children: React.React
   return (
     <div className="flex min-h-screen">
       <Sidebar email={session.email} />
-      <main className="min-w-0 flex-1 px-8 py-7">{children}</main>
+      <main className="min-w-0 flex-1 px-10 py-9">{children}</main>
       <ChatPanel />
     </div>
   );
